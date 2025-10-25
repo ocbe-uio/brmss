@@ -1,3 +1,5 @@
+[![R-CMD-check](https://github.com/ocbe-uio/brmss/workflows/R-CMD-check/badge.svg)](https://github.com/ocbe-uio/brmss/actions)
+
 # brmss: Bayesian Regression Models using Spike-and-Slab Priors
 
 
