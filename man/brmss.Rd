@@ -42,11 +42,11 @@ parameters every tick-th iteration. Default is 1}
 
 \item{gammaSampler}{one of \code{c("mc3", "bandit")}}
 
+\item{gammaProposal}{one of \code{c("simple", "posterior")}}
+
 \item{initial}{a list of initial values for parameters "kappa" and "betas"}
 
 \item{arms.list}{a list of parameters for the ARMS algorithm}
-
-\item{gamma_proposal}{one of \code{c("simple", "posterior")}}
 }
 \value{
 An object of a list including the following components:

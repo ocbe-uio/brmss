@@ -18,7 +18,7 @@
 #' @param hyperpar a list of relevant hyperparameters
 #' @param threads number of threads used for parallelization. Default is 1
 #' @param gammaSampler one of \code{c("mc3", "bandit")}
-#' @param gamma_proposal one of \code{c("simple", "posterior")}
+#' @param gammaProposal one of \code{c("simple", "posterior")}
 #' @param initial a list of initial values for parameters "kappa" and "betas"
 #' @param arms.list a list of parameters for the ARMS algorithm
 #'
