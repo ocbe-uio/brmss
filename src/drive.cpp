@@ -69,7 +69,7 @@ Rcpp::List run_mcmc(
 #ifdef _OPENMP
     // omp_set_nested( 0 );
     // omp_set_num_threads( 1 );
-    if( maxThreads == 1 )
+    if( threads == 1 )
     {
         omp_set_nested( 0 );
         omp_set_num_threads( 1 );
@@ -79,7 +79,7 @@ Rcpp::List run_mcmc(
         omp_init_lock(&RNGlock);  // init RNG lock for the parallel part
 
         omp_set_nested(0); // 1=enable, 0=disable nested parallelism (e.g. compute likelihoods in parallel at least wrt to outcomes + wrt to individuals)
-        omp_set_num_threads( maxThreads ); // TODO: 'maxThreads' seems not faster always
+        omp_set_num_threads( threads ); // TODO: 'threads' seems not faster always
     }
 #endif
 
