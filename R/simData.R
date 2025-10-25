@@ -1,0 +1,153 @@
+#' @title Simulate data
+#'
+#' @description
+#' Simulate survival data based on a Cox model
+#'
+#' @name simData
+#'
+#' @importFrom stats rbinom rnorm runif rexp rgamma
+#'
+#' @param n number of subjects
+#' @param p number of covariates in each cluster
+#' @param L number of response variables
+#' @param kappas value of the Weibull's shape parameter
+#' @param model one of \code{c("linear", "loglinear", "logistic", "probit",
+#' "beta", "multinomial", "dirichlet", "cox")}
+#'
+#' @return An object of a list
+#' \itemize{
+#' \item "\code{x}" - an matrix of covariates
+#' \item "\code{y}" - a dataframe including events and times
+#' \item "\code{betas}" - covariate effects
+#' \item "\code{kappas}" - value of the Weibull's shape parameter
+#' }
+#'
+#'
+#' @examples
+#'
+#' # simulate data
+#' set.seed(123)
+#' n <- 200 # subjects
+#' p <- 10 # variable selection predictors
+#' dat <- simData(n, p)
+#' str(dat)
+#'
+#' @export
+simData <- function(n = 200, p = 10, L = 1,
+                    kappas = 2,
+                    model = "weibull") {
+  ## predefined functions
+  Expo <- function(times, surv) {
+    z1 <- -log(surv[1])
+    t1 <- times[1]
+    lambda <- z1 / (t1)
+    list(rate = lambda)
+  }
+
+  ## effects
+  betas <- matrix(c(-1, -.5, .8, .8, -1, 0, 0, 0, 0, 0), ncol = 1)
+  p0 <- 6 # limit true relevant features only among the first p0 features
+
+  if (p < 10) { # this condition is invalid in our paper, since we set low-dimensional p=10
+    betas <- betas[1:p, ]
+    p0 <- p
+  } else {
+    if (p > 10) {
+      betas <- rbind(betas, matrix(0, nrow = p - 10, ncol = L))
+    }
+  }
+
+  # generate other effects if multi-responses
+  if (L > 1) {
+    betas <- cbind(betas, matrix(0, nrow = p, ncol = L - 1))
+    betas[1:min(2, p), 2:L] <- c(-1, 1) # runif(min(2, p) * (L - 3), -2, 2)
+  }
+
+  # add intercept
+  betas <- rbind(0.5, betas)
+
+  ## covariates
+  x <- scale(mvnfast::rmvn(n, rep(0, p), diag(p)))
+  attr(x, "scaled:center") <- attr(x, "scaled:scale") <- NULL
+
+  ## simulate proportions from Dirichlet distribution (n, alpha=1:L)
+  y <- NULL
+  if (model == "dirichlet") {
+    alphas <- matrix(nrow = n, ncol = L)
+    for (l in 1:L) {
+      alphas[, l] <- exp(cbind(1, x) %*%
+        matrix(betas[, l], ncol = 1))
+    }
+    # alpha0 <- alpha1 + alpha2 + alpha3
+    # proportion <- cbind(alpha1 / alpha0, alpha2 / alpha0, alpha3 / alpha0)
+
+    ## Generate n-individual Dirichlet proportions
+    proportion <- matrix(nrow = n, ncol = L)
+    for (i in 1:n) {
+      proportion[i, ] <- sapply(1:L, function(l) rgamma(1, alphas[i, l]))
+    }
+
+    # proportion <- matrix(rgamma(L * n, t(1:L)), ncol = L, byrow=TRUE)
+    y <- proportion / rowSums(proportion)
+  }
+
+  if (model == "weibull") {
+    # censoring function
+    # - follow-up time 1 to 3 years
+    # - administrative censoring: uniform data entry (cens1)
+    # - loss to follow-up: exponential, 20% loss (cens2)
+    ACT <- 1
+    FUT <- 3 # 5
+    cens.start <- FUT
+    cens.end <- ACT + FUT
+    cens1 <- runif(n, cens.start, cens.end)
+    loss <- Expo(times = 5, surv = 0.8) # 0.6)#
+    cens2 <- rexp(n, rate = loss$rate)
+    cens <- pmin(cens1, cens2)
+
+    ## simulate event times by M-H algorithm
+    T.star <- cens
+    accepted <- numeric(n)
+    mu0 <- exp(cbind(1, x) %*% betas)
+
+
+    for (i in 1:n) {
+      ## M-H sampler for event time
+      # If the target is set as Gompertz distr., it's a bit model misspecification
+      out <- metropolis_sampler(
+        initial_value = 10,
+        n = 5,
+        proposal_shape = 0.9,
+        proposal_scale = mean(cens),
+        mu = mu0[i],
+        kappas = kappas,
+        burnin = 100,
+        lag = 10
+      )
+      T.star[i] <- mean(out$value)
+      accepted[i] <- mean(out$accepted)
+    }
+    # survival object
+    event <- ifelse(T.star <= cens, 1, 0) # censoring indicator
+    times <- pmin(T.star, cens) # observed times
+    y <- data.frame(time = times, event = event)
+  }
+
+  if (model == "cox") {
+    # simulate event times from Weibull distribution (WEI2)
+    T.star <- (-log(runif(n)) * (1 / kappas) *
+      exp(-x %*% betas))^(1 / kappas)
+
+    # survival object
+    event <- ifelse(T.star <= cens, 1, 0) # censoring indicator
+    times <- pmin(T.star, cens) # observed times
+    y <- data.frame(event = event, time = times)
+  }
+
+  return(list(
+    y = y,
+    x = x,
+    betas = betas,
+    kappa = kappas
+  ))
+}

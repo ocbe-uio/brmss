@@ -1,0 +1,144 @@
+---
+title: "Introduction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Introduction}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
+
+This R package **brmss** implements high-dimensional Bayesian (non-)linear regression models using independent spike-and-slab priors for full Bayesian inference. 
+A general Metropolis-Hastings algorithm is used to sample the indicator variables of variable selection. 
+
+## Installation
+
+Install the latest released version from [CRAN](https://CRAN.R-project.org/package=brmss)
+
+```r
+#install.packages("brmss")
+```
+
+Install the latest development version from [GitHub](https://github.com/ocbe-uio/brmss):
+
+```r
+#install.packages("remotes")
+remotes::install_github("ocbe-uio/brmss")
+```
+
+## A simulation study
+
+```{r}
+# Rscript -e "rmarkdown::render('test_small-p.Rmd')"
+rm(list = ls())
+
+library(brmss)
+set.seed(123)
+n <- 200 # subjects
+p <- 10 # variable selection predictors
+
+dat <- simData(n, p)
+
+arms.list <- list(
+  n = 1, # This should always be n=1 with the current code
+  # 'nsamp' too large might result in local optima, since the internal ARMS will try to get stationary in intermediate iterations
+  nsamp = 10, # be tuned in c(1,10); if nsamp=1, the drawn samples MIGHT move too slowly (i.e. low variation)
+  ninit = 10, # be tuned in c(10, 20, 40); shouldn't >=50
+  metropolis = 1,
+  convex = 1,
+  npoint = 100
+)
+# hyperpar <- list(bound.neg = -100, bound.pos = 100)
+# run a Bayesian brmss model: brmss-Ber2
+set.seed(123)
+fit <- brmss(dat$y, dat$x,
+  family = "weibull",
+  gammaSampler = "bandit",
+  nIter = 1000, burnin = 500
+)
+
+# save(fit, file = paste0(filename_save, seed.idx, ".RData"))
+fit$output$gamma_acc_rate
+
+## elpd-loo 
+getEstimator(fit, estimator = "elpd")
+
+## effective sample size
+#loglik <- getEstimator(fit, estimator = "logP")
+#(ESS <- length(loglik) * var(loglik) / coda::spectrum0.ar(loglik)$spec)
+```
+
+
+```{r fig.width=6, fig.height=4}
+# KM curve
+library(survival)
+library(survminer)
+survObj <- data.frame(time = dat$y$time, event = dat$y$event)
+fit.km <- survival::survfit(Surv(time, event) ~ 1, data = survObj)
+ggsurv <- survminer::ggsurvplot(fit.km,
+  conf.int = TRUE, risk.table = TRUE,
+  xlab = "Time since diagnosis (year)", # "Time",
+  legend = "none", # surv.median.line = "hv"
+  # risk.table.y.text.col = FALSE,
+  # risk.table.y.text = FALSE,
+  risk.table.title = "Number of patients at risk",
+  tables.col = "strata"
+)
+ggsurv$plot <- ggsurv$plot + annotate("text", x = 50, y = 0.9, label = "+  Censor")
+
+ggsurv
+```
+
+```{r fig.width=6, fig.height=5}
+M <- fit$input$nIter
+# survival predictions based on posterior mean
+set.seed(123456)
+dat.test <- simData(n, p)
+b <- plotBrier(dat, datMCMC = fit, dat.new = dat.test)
+b
+```
+
+```{r fig.width=5, fig.height=5}
+plotMCMC(dat, datMCMC = fit, estimator = c("kappa", "tau"))
+```
+
+```{r fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
+plotCoeff(dat, datMCMC = fit, estimator = "gamma")
+```
+
+```{r fig.width=6, fig.height=4}
+layout(matrix(1, 1, 1))
+plot(getEstimator(fit, estimator = "logP"),
+  lty = 1, type = "l",
+  xlab = "iteration", ylab = "log-likelihood"
+)
+```
+
+```{r fig.width=6, fig.height=4.5, message=FALSE, warning=FALSE}
+gg <- plotCoeff(dat, datMCMC = fit, estimator = "beta")
+gg
+```
+
+```{r fig.width=12, fig.height=18}
+# MCMC traceplots of betas
+plotMCMC(dat, datMCMC = fit, estimator = "beta")
+```
+
+Show the trace-plot of variable selection indicators:
+
+```{r fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
+# MCMC traceplots of gammas
+plotMCMC(dat, datMCMC = fit, estimator = "gamma")
+```
+
+```
+
+
+
+## References
+
+Zhao Z (2025+). arXiv:

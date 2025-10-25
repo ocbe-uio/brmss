@@ -1,0 +1,27 @@
+bibentry("Manual",
+  title = "{{brmss: Generalized Promotion Time Cure Model with Bayesian Shrinkage Priors}}",
+  author = c(person(given = "Zhi",
+                          family = "Zhao",
+                          email = "zhi.zhao@medisin.uio.no")),
+  year = 2025,
+  note = "R package version 1.1.2",
+  doi  = "10.32614/CRAN.package.brmss",
+  header  = "To cite brmss in publications use:"
+)
+
+
+bibentry(bibtype = "Misc",
+  title       = "Generalized promotion time cure model: A new modeling framework to identify cell-type-specific genes and improve survival prognosis",
+  author      = c(person(given = "Zhi",
+                          family = "Zhao"),
+                   person(given = "Fatih",
+                          family = "Kızılaslan"),
+                   person(given = "Shixiong",
+                          family = "Wang"),
+                   person(given = "Manuela",
+                          family = "Zucknick")),
+  year = "2025",
+  note = "arXiv:2509.01001",
+  doi  = "10.48550/arXiv.2509.01001",
+  header  = "To cite brmss in publications use:"
+)

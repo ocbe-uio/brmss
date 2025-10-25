@@ -1,0 +1,19 @@
+Package: brmss
+Title: Bayesian Regression Models using Spike-and-Slab Priors
+Version: 0.1
+Description: Fit high-dimensional Bayesian linear and nonlinear regression models using independent spike-and-slab priors for full Bayesian inference. A general Metropolis-Hastings algorithm is used to sample the indicator variables of variable selection.
+Authors@R: c(person("Zhi", "Zhao", role=c("aut","cre"), email = "zhi.zhao@medisin.uio.no"))
+Maintainer: Zhi Zhao <zhi.zhao@medisin.uio.no> 
+Copyright: The code in src/arms.cpp is slightly modified based on the research paper implementation written by Wally Gilks. 
+URL: https://github.com/ocbe-uio/brmss
+BugReports: https://github.com/ocbe-uio/brmss/issues
+License: GPL-3
+VignetteBuilder: knitr
+Depends: R (>= 4.1.0)
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp, survival, riskRegression, ggplot2, ggridges, loo, mvnfast, scales, utils, stats, graphics
+Suggests: knitr, survminer
+NeedsCompilation: yes
+SystemRequirements: C++17
