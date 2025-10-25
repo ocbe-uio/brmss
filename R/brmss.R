@@ -18,6 +18,7 @@
 #' @param hyperpar a list of relevant hyperparameters
 #' @param threads number of threads used for parallelization. Default is 1
 #' @param gammaSampler one of \code{c("mc3", "bandit")}
+#' @param gamma_proposal one of \code{c("simple", "posterior")}
 #' @param initial a list of initial values for parameters "kappa" and "betas"
 #' @param arms.list a list of parameters for the ARMS algorithm
 #'
@@ -66,6 +67,7 @@ brmss <- function(y, x,
                   hyperpar = NULL,
                   threads = 1,
                   gammaSampler = "mc3",
+                  gammaProposal = "simple",
                   initial = NULL,
                   arms.list = NULL) {
   # Validation
@@ -194,6 +196,7 @@ brmss <- function(y, x,
     thin,
     tick,
     gammaSampler,
+    gammaProposal,
     threads,
     arms.list$n, # n: number of samples to draw, now only 1
     arms.list$nsamp, # nsamp: number of MCMC for generating each ARMS sample, only keeping the last one

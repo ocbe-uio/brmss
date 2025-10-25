@@ -32,6 +32,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //' @param tick an integer used for printing the iteration index and some updated
 //' parameters every tick-th iteration. Default is 1
 //' @param gamma_sampler M-H sampler with "mc" or multi-armed "bandit" proposal for gammas
+//' @param gamma_proposal one of 'c("simple", "posterior")'
 //' @param threads number of threads used for parallelization. Default is 1
 //' @param n number of samples to draw
 //' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -54,6 +55,7 @@ Rcpp::List run_mcmc(
     unsigned int thin,
     unsigned int tick,
     const std::string& gamma_sampler,
+    const std::string& gamma_proposal,
     int threads,
 
     unsigned int n,
@@ -270,22 +272,42 @@ Rcpp::List run_mcmc(
         // weibullS = arma::exp(- arma::pow( y/lambdas, kappa));
 
         // update \gammas -- variable selection indicators
-        BVS_Sampler::sampleGamma(
-            gammas,
-            gammaSampler,
-            familyType,
-            logP_gamma,
-            gamma_acc_count,
-            loglik,
-            armsPar,
-            hyperpar,
-            betas,
-            kappa,
-            tau0Sq,
-            tauSq,
+        if (gamma_proposal == "simple")
+        {
+            BVS_Sampler::sampleGamma(
+                gammas,
+                gammaSampler,
+                familyType,
+                logP_gamma,
+                gamma_acc_count,
+                loglik,
+                armsPar,
+                hyperpar,
+                betas,
+                kappa,
+                tau0Sq,
+                tauSq,
 
-            dataclass
-        );
+                dataclass
+            );
+        } else {
+            BVS_Sampler::sampleGammaProposalRatio(
+                gammas,
+                gammaSampler,
+                familyType,
+                logP_gamma,
+                gamma_acc_count,
+                loglik,
+                armsPar,
+                hyperpar,
+                betas,
+                kappa,
+                tau0Sq,
+                tauSq,
+
+                dataclass
+            );
+        }
 
         // update \betas
         ARMS_Gibbs::arms_gibbs_beta_weibull(

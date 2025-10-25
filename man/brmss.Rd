@@ -15,6 +15,7 @@ brmss(
   hyperpar = NULL,
   threads = 1,
   gammaSampler = "mc3",
+  gammaProposal = "simple",
   initial = NULL,
   arms.list = NULL
 )
@@ -44,6 +45,8 @@ parameters every tick-th iteration. Default is 1}
 \item{initial}{a list of initial values for parameters "kappa" and "betas"}
 
 \item{arms.list}{a list of parameters for the ARMS algorithm}
+
+\item{gamma_proposal}{one of \code{c("simple", "posterior")}}
 }
 \value{
 An object of a list including the following components:

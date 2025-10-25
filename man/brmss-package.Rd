@@ -5,7 +5,7 @@
 \alias{brmss-package}
 \title{brmss: Bayesian Regression Models using Spike-and-Slab Priors}
 \description{
-Fit high-dimensional Bayesian (non-)linear regression models using independent spike-and-slab priors for full Bayesian inference. A general Metropolis-Hastings algorithm is used to sample the indicator variables of variable selection.
+Fit high-dimensional Bayesian linear and nonlinear regression models using independent spike-and-slab priors for full Bayesian inference. A general Metropolis-Hastings algorithm is used to sample the indicator variables of variable selection.
 }
 \seealso{
 Useful links:

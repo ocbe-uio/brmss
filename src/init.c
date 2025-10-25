@@ -8,11 +8,11 @@
 */
 
 /* .Call calls */
-extern SEXP _brmss_run_mcmc(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _brmss_run_mcmc(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] =
 {
-    {"_brmss_run_mcmc", (DL_FUNC) &_brmss_run_mcmc, 18},
+    {"_brmss_run_mcmc", (DL_FUNC) &_brmss_run_mcmc, 19},
     {NULL, NULL, 0}
 };
 

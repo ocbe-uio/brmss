@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // run_mcmc
-Rcpp::List run_mcmc(arma::mat& y, arma::mat& X, unsigned int L, const std::string& family, unsigned int nIter, unsigned int burnin, unsigned int thin, unsigned int tick, const std::string& gamma_sampler, int threads, unsigned int n, int nsamp, int ninit, double convex, int npoint, const Rcpp::List& initList, const Rcpp::List& rangeList, const Rcpp::List& hyperparList);
-RcppExport SEXP _brmss_run_mcmc(SEXP ySEXP, SEXP XSEXP, SEXP LSEXP, SEXP familySEXP, SEXP nIterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP tickSEXP, SEXP gamma_samplerSEXP, SEXP threadsSEXP, SEXP nSEXP, SEXP nsampSEXP, SEXP ninitSEXP, SEXP convexSEXP, SEXP npointSEXP, SEXP initListSEXP, SEXP rangeListSEXP, SEXP hyperparListSEXP) {
+Rcpp::List run_mcmc(arma::mat& y, arma::mat& X, unsigned int L, const std::string& family, unsigned int nIter, unsigned int burnin, unsigned int thin, unsigned int tick, const std::string& gamma_sampler, const std::string& gamma_proposal, int threads, unsigned int n, int nsamp, int ninit, double convex, int npoint, const Rcpp::List& initList, const Rcpp::List& rangeList, const Rcpp::List& hyperparList);
+RcppExport SEXP _brmss_run_mcmc(SEXP ySEXP, SEXP XSEXP, SEXP LSEXP, SEXP familySEXP, SEXP nIterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP tickSEXP, SEXP gamma_samplerSEXP, SEXP gamma_proposalSEXP, SEXP threadsSEXP, SEXP nSEXP, SEXP nsampSEXP, SEXP ninitSEXP, SEXP convexSEXP, SEXP npointSEXP, SEXP initListSEXP, SEXP rangeListSEXP, SEXP hyperparListSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,6 +26,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int >::type thin(thinSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type tick(tickSEXP);
     Rcpp::traits::input_parameter< const std::string& >::type gamma_sampler(gamma_samplerSEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type gamma_proposal(gamma_proposalSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type n(nSEXP);
     Rcpp::traits::input_parameter< int >::type nsamp(nsampSEXP);
@@ -35,7 +36,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type initList(initListSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type rangeList(rangeListSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type hyperparList(hyperparListSEXP);
-    rcpp_result_gen = Rcpp::wrap(run_mcmc(y, X, L, family, nIter, burnin, thin, tick, gamma_sampler, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList));
+    rcpp_result_gen = Rcpp::wrap(run_mcmc(y, X, L, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList));
     return rcpp_result_gen;
 END_RCPP
 }
