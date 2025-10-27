@@ -14,15 +14,24 @@ class ARMS_Gibbs
 {
 public:
 
-    static void arms_gibbs_beta_gaussian(
+    static void arms_gibbs_beta_dirichlet(
         const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
         arma::mat& currentPars,
         arma::umat gammas,
-        double& tauSq,
+        arma::vec& tauSq,
         double& tau0Sq,
+        const DataClass &dataclass
+    );
 
-        double kappa,
+    static void arms_gibbs_betaK_dirichlet(
+        const unsigned int k,
+        const armsParmClass& armsPar,
+        const hyperparClass& hyperpar,
+        arma::mat& currentPars,
+        arma::umat gammas,
+        double tauSqK,
+        double tau0Sq,
         const DataClass &dataclass
     );
 

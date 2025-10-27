@@ -13,7 +13,7 @@ void weibull(
     unsigned int thin,
     double kappa,
     double& tau0Sq,
-    double& tauSq,
+    arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gamma_proposal,

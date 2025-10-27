@@ -5,8 +5,49 @@
 #include "eval_func.h"
 #include "global.h"
 
+// log-density for Dirichlet's coefficients
+double EvalFunction::log_dens_betas_dirichlet(
+    double par,
+    void *abc_data)
+{
+    double h = 0.;
 
-// log-density for coefficient betas
+    // dataS *mydata_parm = (dataS *)calloc(sizeof(dataS), sizeof(dataS));
+    // std::unique_ptr<dataS> mydata_parm = std::make_unique<dataS>();
+    // *mydata_parm = *(dataS *)abc_data;
+    auto mydata_parm = static_cast<dataS*>(abc_data);
+
+    arma::mat X(const_cast<double*>(mydata_parm->X), mydata_parm->N, mydata_parm->p, false);
+    arma::mat y(const_cast<double*>(mydata_parm->y), mydata_parm->N, mydata_parm->L, false);
+
+    arma::mat pars(mydata_parm->currentPars, mydata_parm->p+1, mydata_parm->L, false);
+    pars(mydata_parm->jj, mydata_parm->l) = par;
+
+    arma::mat alphas = arma::zeros<arma::mat>(mydata_parm->N, mydata_parm->L);
+
+    for(unsigned int ll=0; ll<(mydata_parm->L); ++ll)
+    {
+        alphas.col(ll) = arma::exp( pars(0, ll) + X * pars.submat(1, ll, mydata_parm->p, ll) );
+    }
+    alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
+    alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
+    arma::vec alphas_Rowsum = arma::sum(alphas, 1);
+
+    double tau = mydata_parm->tauSq;
+    if(mydata_parm->jj == 0)
+    {
+        tau = mydata_parm->tau0Sq;
+    }
+
+    h = - par * par / tau / 2. + arma::accu(
+            arma::lgamma(alphas_Rowsum) - arma::sum(arma::lgamma(alphas), 1) +
+            arma::sum( (alphas - 1.0) % arma::log(y), 1 )
+        );
+
+    return h;
+}
+
+// log-density for Weibull's coefficients
 double EvalFunction::log_dens_betas_weibull(
     double par,
     void *abc_data)
@@ -24,7 +65,6 @@ double EvalFunction::log_dens_betas_weibull(
     pars(mydata_parm->jj) = par;
 
     arma::vec logMu = pars(0) + X * pars.submat(1, 0, mydata_parm->p, 0);
-    // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
 
     arma::vec lambdas = arma::exp(logMu) / std::tgamma(1. + 1./mydata_parm->kappa);
 
@@ -41,12 +81,21 @@ double EvalFunction::log_dens_betas_weibull(
     double logpost_first_sum = arma::sum( logpost_first.elem(arma::find(event == 1)) );
 
     arma::vec logpost_second = arma::pow( y / lambdas, mydata_parm->kappa);
-    logpost_second.elem(arma::find(logpost_second > upperbound9)).fill(upperbound9);
+    
+    logpost_second.elem(arma::find(logpost_second > upperbound2)).fill(upperbound2);
     double logpost_second_sum =  arma::sum( - logpost_second );
-
     h = logpost_first_sum + logpost_second_sum + logprior;
 
-    // free(mydata_parm);
+    // // The following use of 'infinity()' may result in numerical issue in ARMS algorithm
+    // if(logpost_second.has_inf())
+    // {
+    //     h = - std::numeric_limits<double>::infinity();
+    // }
+    // else
+    // {
+    //     h = logpost_first_sum - arma::sum( logpost_second ) + logprior;
+    // }
+
     return h;
 }
 

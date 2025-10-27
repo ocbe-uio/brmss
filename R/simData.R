@@ -69,10 +69,15 @@ simData <- function(n = 200, p = 10, L = 1,
   ## covariates
   x <- scale(mvnfast::rmvn(n, rep(0, p), diag(p)))
   attr(x, "scaled:center") <- attr(x, "scaled:scale") <- NULL
+  colnames(x) <- paste0("X", 1:p)
 
   ## simulate proportions from Dirichlet distribution (n, alpha=1:L)
   y <- NULL
   if (model == "dirichlet") {
+    if (L == 1) {
+      stop("To simulate Dirichlet data, argument 'L' must be at least 2!")
+    }
+    
     alphas <- matrix(nrow = n, ncol = L)
     for (l in 1:L) {
       alphas[, l] <- exp(cbind(1, x) %*%
@@ -89,6 +94,9 @@ simData <- function(n = 200, p = 10, L = 1,
 
     # proportion <- matrix(rgamma(L * n, t(1:L)), ncol = L, byrow=TRUE)
     y <- proportion / rowSums(proportion)
+    colnames(y) <- paste0("Y", 1:L)
+    
+    dat <- list(y = y, x = x, betas = betas)
   }
 
   if (model == "weibull") {
@@ -131,6 +139,8 @@ simData <- function(n = 200, p = 10, L = 1,
     event <- ifelse(T.star <= cens, 1, 0) # censoring indicator
     times <- pmin(T.star, cens) # observed times
     y <- data.frame(time = times, event = event)
+    
+    dat <- list(y = y, x = x, betas = betas, kappa = kappas)
   }
 
   if (model == "cox") {
@@ -142,12 +152,9 @@ simData <- function(n = 200, p = 10, L = 1,
     event <- ifelse(T.star <= cens, 1, 0) # censoring indicator
     times <- pmin(T.star, cens) # observed times
     y <- data.frame(event = event, time = times)
+    
+    dat <- list(y = y, x = x, betas = betas, kappa = kappas)
   }
 
-  return(list(
-    y = y,
-    x = x,
-    betas = betas,
-    kappa = kappas
-  ))
+  return(dat)
 }

@@ -12,14 +12,16 @@
 #include <RcppArmadillo.h>
 
 // Define constants for bounds
-constexpr double UPPER_BOUND = 700.0;
-constexpr double UPPER_BOUND_9 = 9.0e10;
-constexpr double UPPER_BOUND_3 = 170.0; // 270 here and 1.0e-20 below resulted in slightly worse \zetas. Check to use Log-Sum-Exp trick
-constexpr double LOWER_BOUND = 1.0e-10;
+// constexpr double UPPER_BOUND = 700.0;
+constexpr double UPPER_BOUND_2 = 1.0e10; // 1.0e100 will result in numeric issue in ARMS algorithm for Weibull model
+// constexpr double UPPER_BOUND_3 = 170.0;
+// constexpr double LOWER_BOUND = 1.0e-10;
+constexpr double UPPER_BOUND_3 = 1.0e100;
+constexpr double LOWER_BOUND = 1.0e-100;
 
 // Using the constants inline where necessary
-inline double upperbound = UPPER_BOUND;
-inline double upperbound9 = UPPER_BOUND_9;
+// inline double upperbound = UPPER_BOUND;
+inline double upperbound2 = UPPER_BOUND_2;
 inline double upperbound3 = UPPER_BOUND_3;
 inline double lowerbound = LOWER_BOUND;
 

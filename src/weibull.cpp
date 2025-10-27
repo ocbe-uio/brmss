@@ -13,7 +13,7 @@ void weibull(
     unsigned int thin,
     double kappa,
     double& tau0Sq,
-    double& tauSq,
+    arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gamma_proposal,
@@ -158,7 +158,7 @@ void weibull(
             hyperpar,
             betas,
             gammas,
-            tauSq,
+            tauSq[0],
             tau0Sq,
 
             kappa,
@@ -177,8 +177,6 @@ void weibull(
         for(unsigned int l=0; l<L; ++l)
         {
             logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
-            // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
-            // mu.col(l) = arma::exp( logMu );
         }
 
         // save results for un-thinned posterior mean
@@ -194,7 +192,7 @@ void weibull(
         {
             kappa_mcmc[1+nIter_thin_count] = kappa;
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
+            tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 

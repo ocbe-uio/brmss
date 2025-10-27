@@ -120,13 +120,14 @@ brmss <- function(y, x,
     hyperpar <- list()
   }
 
-  # spike-and-slab's gammas hyperparameters of beta prior
-  if (!"pi" %in% names(hyperpar)) {
-    hyperpar$pi <- 0
-  }
+  # if (!"pi" %in% names(hyperpar)) {
+  #   hyperpar$pi <- 0 # TODO: enable this if not use a hyperprior for 'pi' 
+  # }
+  
+  # beta-Bernoulli's hyperparameters
   if (!"piA" %in% names(hyperpar)) {
-    hyperpar$piA <- 2
-    hyperpar$piB <- 20
+    hyperpar$piA <- 1
+    hyperpar$piB <- NCOL(x)
   }
 
   # hyperpar$tauA <- 20; hyperpar$tauB <- 50
@@ -191,7 +192,6 @@ brmss <- function(y, x,
   ret$output <- run_mcmc(
     y,
     x,
-    L,
     family,
     nIter,
     burnin,

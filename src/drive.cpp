@@ -22,7 +22,6 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //'
 //' @param y response variable. A vector, matrix or dataframe
 //' @param X input matrix or dataframe
-//' @param L number of response variables
 //' @param family a character string representing one of the built-in families
 //' @param nIter the number of iterations of the chain
 //' @param burnin number of iterations to discard at the start of the chain
@@ -45,7 +44,6 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 Rcpp::List run_mcmc(
     arma::mat& y,
     arma::mat& X,
-    unsigned int L,
 
     const std::string& family,
     unsigned int nIter,
@@ -82,11 +80,11 @@ Rcpp::List run_mcmc(
         omp_set_num_threads( threads ); // TODO: 'threads' seems not faster always
     }
 #endif
-
+// std::cout << "...debug1\n";
     // dimensions
     unsigned int N = X.n_rows;
     unsigned int p = X.n_cols;
-    // unsigned int L = y.n_cols;
+    unsigned int L = y.n_cols;
 
     // arms parameters in a class
     int metropolis = 1;
@@ -96,9 +94,9 @@ Rcpp::List run_mcmc(
                           Rcpp::as<double>(rangeList["betaMin"]),
                           Rcpp::as<double>(rangeList["betaMax"]));
 
-
+// std::cout << "...debug2\n";
     // hyperparameters
-    double tauSq = 1.;
+    arma::vec tauSq = arma::ones<arma::vec>(L);
     double tau0Sq = 1.;
 
     hyperparClass hyperpar(
@@ -116,8 +114,10 @@ Rcpp::List run_mcmc(
 
     // response family
     Family_Type familyType;
-    if ( family == "weibull" )
+    if ( family == "weibull" ) {
         familyType = Family_Type::weibull;
+        L = 1;
+    } 
     else if ( family == "dirichlet" )
         familyType = Family_Type::dirichlet ;
     else
@@ -126,7 +126,7 @@ Rcpp::List run_mcmc(
         return 1;
     }
     // TODO: add more families
-
+// std::cout << "...debug3\n";
     // Gamma Sampler
     Gamma_Sampler_Type gammaSampler;
     if ( gamma_sampler == "bandit" )
@@ -138,21 +138,23 @@ Rcpp::List run_mcmc(
         Rprintf("ERROR: Wrong type of Gamma Sampler given!");
         return 1;
     }
-
+// std::cout << "...debug4\n";
     // initial values of key parameters and save them in a struct object
     arma::mat betas = Rcpp::as<arma::mat>(initList["betas"]);
     double kappa = Rcpp::as<double>(initList["kappa"]);
     // initList = Rcpp::List();  // Clear it by creating a new empty List
 
+// std::cout << "...debug41\n";
     unsigned int nIter_thin = nIter / thin;
     // initializing mcmc results
     arma::vec tauSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
-    tauSq_mcmc[0] = tauSq; // TODO: only keep the first one for now
+    tauSq_mcmc[0] = tauSq[0]; // TODO: only keep the first one for now
     arma::mat beta_mcmc = arma::zeros<arma::mat>(1+nIter_thin, (p+1)*L);
     beta_mcmc.row(0) = arma::vectorise(betas).t();
     arma::vec kappa_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
     kappa_mcmc[0] = kappa;
 
+// std::cout << "...debug42\n";
     // initializing relevant quantities; can be declared like arma::mat&
 
     // quantity 01
@@ -161,10 +163,11 @@ Rcpp::List run_mcmc(
     arma::umat gamma_mcmc = arma::zeros<arma::umat>(1+nIter_thin, p*L);
     gamma_mcmc.row(0) = arma::vectorise(gammas).t();
 
+// std::cout << "...debug43\n";
     // mean parameter
-    arma::mat mu = arma::zeros<arma::mat>(N, L);
+    // arma::mat mu = arma::zeros<arma::mat>(N, L);
     // arma::vec mu;
-    arma::vec logMu = arma::zeros<arma::mat>(N, L);
+    // arma::vec logMu = arma::zeros<arma::mat>(N, L);
 
     arma::uvec event;
     arma::vec lambdas; // Weibull's scale parameter
@@ -174,9 +177,9 @@ Rcpp::List run_mcmc(
         y.shed_col(1);
 
         // arma::vec logMu = arma::join_cols(arma::ones<arma::rowvec>(N), X) * betas.col(0);
-        logMu = betas(0) + X * betas.submat(1, 0, p, 0);
+        // logMu = betas(0) + X * betas.submat(1, 0, p, 0);
     }
-
+// std::cout << "...debug5\n";
     // input constant data sets in a class
     DataClass dataclass(X, y, event);
     X.clear();
@@ -189,7 +192,7 @@ Rcpp::List run_mcmc(
     arma::umat gamma_post = arma::zeros<arma::umat>(arma::size(gammas));
 
     arma::mat loglikelihood_mcmc = arma::zeros<arma::mat>(1+nIter_thin, N);
-
+// std::cout << "...debug6\n";
 
     // ###########################################################
     // ## models for MCMC
@@ -253,7 +256,7 @@ Rcpp::List run_mcmc(
         break;
     }
 
-
+// std::cout << "...debug7\n";
     Rcpp::Rcout << "\n";
 
     // wrap all outputs

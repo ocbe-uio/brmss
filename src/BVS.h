@@ -64,7 +64,7 @@ public:
         arma::mat& betas,
         double kappa,
         double& tau0Sq,
-        double& tauSq,
+        arma::vec& tauSq,
 
         const DataClass &dataclass
     );
@@ -83,7 +83,7 @@ public:
         arma::mat& betas,
         double kappa,
         double& tau0Sq,
-        double& tauSq,
+        arma::vec& tauSq,
 
         const DataClass &dataclass
     );

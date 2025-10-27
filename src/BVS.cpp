@@ -11,22 +11,47 @@ void BVS_Sampler::loglikelihood(
     arma::vec& loglik)
 {
     // dimensions
-    unsigned int N = dataclass.y.n_rows;
+    unsigned int N = dataclass.X.n_rows;
     unsigned int p = dataclass.X.n_cols;
+    unsigned int L = dataclass.y.n_cols;
 
-    // arma::vec mu = arma::exp( betas(0) + dataclass.X * betas.submat(1, 0, p, 0) );
-    arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
-    // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
-    arma::vec mu = arma::exp( logMu );
-    arma::vec lambdas = mu / std::tgamma(1. + 1./kappa);
+    if(kappa != 0)
+    {
+        // arma::vec mu = arma::exp( betas(0) + dataclass.X * betas.submat(1, 0, p, 0) );
+        arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
+        // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
+        arma::vec mu = arma::exp( logMu );
+        arma::vec lambdas = mu / std::tgamma(1. + 1./kappa);
 
-    arma::vec first_part = std::log(kappa) - kappa * (logMu - std::lgamma(1. + 1./kappa)) + //arma::log(lambdas) +
-                           (kappa - 1) * arma::log(dataclass.y);// + weibull_logS;
-    first_part.elem(arma::find(dataclass.event == 0)).fill(0.);
+        arma::vec first_part = std::log(kappa) - kappa * (logMu - std::lgamma(1. + 1./kappa)) + //arma::log(lambdas) +
+                               (kappa - 1) * arma::log(dataclass.y);// + weibull_logS;
+        first_part.elem(arma::find(dataclass.event == 0)).fill(0.);
 
-    arma::vec second_part =  - arma::pow( dataclass.y / lambdas, kappa);
+        arma::vec second_part =  - arma::pow( dataclass.y / lambdas, kappa);
 
-    loglik = first_part + second_part;
+        loglik = first_part + second_part;
+
+    }
+    else
+    {
+        arma::mat alphas = arma::zeros<arma::mat>(N, L);
+        arma::vec alphas_Rowsum;
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+
+        for(unsigned int l=0; l<L; ++l)
+        {
+            alphas.col(l) = arma::exp( betas(0, l) + dataclass.X * betas.submat(1, l, p, l) );
+        }
+        alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
+        alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
+        alphas_Rowsum = arma::sum(alphas, 1);
+
+        loglik = arma::lgamma(alphas_Rowsum) - arma::sum(arma::lgamma(alphas), 1) +
+                 arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 );
+    }
+
 
 }
 
@@ -44,7 +69,7 @@ void BVS_Sampler::sampleGamma(
     arma::mat& betas,
     double kappa,
     double& tau0Sq,
-    double& tauSq,
+    arma::vec& tauSq,
 
     const DataClass &dataclass)
 {
@@ -115,7 +140,7 @@ void BVS_Sampler::sampleGamma(
             hyperpar,
             betas_proposal,
             proposedGamma,
-            tauSq,
+            tauSq[0],
             tau0Sq,
             kappa,
             dataclass
@@ -125,7 +150,17 @@ void BVS_Sampler::sampleGamma(
 
     case Family_Type::dirichlet:
     {
-        double TOOD = 0.;
+        ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
+            componentUpdateIdx,
+            armsPar,
+            hyperpar,
+            betas_proposal,
+            proposedGamma,
+            tauSq[componentUpdateIdx],
+            tau0Sq,
+            dataclass
+        );
+
     }
     }
 
@@ -187,7 +222,7 @@ void BVS_Sampler::sampleGammaProposalRatio(
     arma::mat& betas,
     double kappa,
     double& tau0Sq,
-    double& tauSq,
+    arma::vec& tauSq,
 
     const DataClass &dataclass)
 {
@@ -247,7 +282,8 @@ void BVS_Sampler::sampleGammaProposalRatio(
     arma::mat betas_proposal = betas;
 
     // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
-    double logPosteriorBeta, logPosteriorBeta_proposal;
+    double logPosteriorBeta = 0.; 
+    double logPosteriorBeta_proposal = 0.;
 
     switch(familyType)
     {
@@ -258,7 +294,7 @@ void BVS_Sampler::sampleGammaProposalRatio(
             hyperpar,
             betas_proposal,
             proposedGamma,
-            tauSq,
+            tauSq[0],
             tau0Sq,
             kappa,
             dataclass
@@ -266,13 +302,13 @@ void BVS_Sampler::sampleGammaProposalRatio(
 
         logPosteriorBeta = logPbeta(
                                betas,
-                               tauSq,
+                               tauSq[0],
                                kappa,
                                dataclass
                            );
         logPosteriorBeta_proposal = logPbeta(
                                         betas_proposal,
-                                        tauSq,
+                                        tauSq[0],
                                         kappa,
                                         dataclass
                                     );
@@ -286,7 +322,7 @@ void BVS_Sampler::sampleGammaProposalRatio(
     }
     }
 
-    double logPriorBetaRatio = logPDFNormal(betas_proposal, tauSq) - logPDFNormal(betas, tauSq);
+    double logPriorBetaRatio = logPDFNormal(betas_proposal, tauSq[0]) - logPDFNormal(betas, tauSq[0]);
     double logProposalBetaRatio = logPosteriorBeta - logPosteriorBeta_proposal;
 
 
@@ -554,7 +590,6 @@ double BVS_Sampler::logPbeta(
     unsigned int p = dataclass.X.n_cols;
 
     arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
-    // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
 
     arma::vec lambdas = arma::exp(logMu) / std::tgamma(1. + 1./kappa);
 
@@ -566,9 +601,20 @@ double BVS_Sampler::logPbeta(
     double logpost_first_sum = arma::sum( logpost_first.elem(arma::find(dataclass.event == 1)) );
 
     arma::vec logpost_second = arma::pow( dataclass.y / lambdas, kappa);
-    logpost_second.elem(arma::find(logpost_second > upperbound9)).fill(upperbound9);
-    double logpost_second_sum =  arma::sum( - logpost_second );
+    // logpost_second.elem(arma::find(logpost_second > upperbound2)).fill(upperbound2);
+    // double logpost_second_sum =  arma::sum( - logpost_second );
+    // return logpost_first_sum + logpost_second_sum + logprior;
 
-    return logpost_first_sum + logpost_second_sum + logprior;
+    double h = 0.;
+    if(logpost_second.has_inf())
+    {
+        h = - std::numeric_limits<double>::infinity();
+    }
+    else
+    {
+        h = logpost_first_sum - arma::sum( logpost_second ) + logprior;
+    }
+
+    return h;
 }
 

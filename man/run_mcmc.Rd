@@ -7,7 +7,6 @@
 run_mcmc(
   y,
   X,
-  L,
   family,
   nIter,
   burnin,
@@ -30,8 +29,6 @@ run_mcmc(
 \item{y}{response variable. A vector, matrix or dataframe}
 
 \item{X}{input matrix or dataframe}
-
-\item{L}{number of response variables}
 
 \item{family}{a character string representing one of the built-in families}
 

@@ -39,6 +39,12 @@ class EvalFunction
 public:
 
 
+    static double log_dens_betas_dirichlet
+    (
+        double par,
+        void *abc_data
+    );
+
     static double log_dens_betas_weibull
     (
         double par,

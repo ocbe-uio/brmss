@@ -11,7 +11,7 @@ void dirichlet(
     unsigned int burnin,
     unsigned int thin,
     double& tau0Sq,
-    double& tauSq,
+    arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gamma_proposal,
@@ -30,6 +30,7 @@ void dirichlet(
     arma::vec& tauSq_mcmc
 )
 {
+    // std::cout << "...debug11\n";
     // dimensions
     unsigned int N = dataclass.X.n_rows;
     unsigned int p = dataclass.X.n_cols;
@@ -38,7 +39,8 @@ void dirichlet(
     double kappa = 0.; // TODO: defined for the general function 'sampleGamma()'
 
     arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);; // this is declared to be updated in the M-H sampler for gammas
-
+    
+    // std::cout << "...debug12\n";
     gamma_acc_count = 0;
     for(unsigned int l=0; l<L; ++l)
     {
@@ -50,7 +52,7 @@ void dirichlet(
             logP_gamma(j, l) = BVS_Sampler::logPDFBernoulli(gammas(j, l), pi);
         }
     }
-
+    // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
     BVS_Sampler::loglikelihood(
         betas,
@@ -59,7 +61,7 @@ void dirichlet(
         loglik
     );
     loglikelihood_mcmc.row(0) = loglik.t();
-
+    // std::cout << "...debug14\n";
     arma::mat proportion;
     arma::mat alphas = arma::zeros<arma::mat>(N, L);
     for(unsigned int l=0; l<L; ++l)
@@ -69,28 +71,26 @@ void dirichlet(
     alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
     alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
     proportion = alphas / arma::repmat(arma::sum(alphas, 1), 1, L);
-
+    // std::cout << "...debug15\n";
 
     // ###########################################################
     // ## MCMC loop
     // ###########################################################
 
     const unsigned int cTotalLength = 50;
-    //std::cout
-    Rprintf("WARNING: This has not been implemented!\n");
+
     Rprintf("Running MCMC iterations ...\n");
     unsigned int nIter_thin_count = 0;
     for (unsigned int m=0; m<nIter; ++m)
     {
         // print progression cursor
         if (m % 10 == 0 || m == (nIter - 1))
-            //std::cout
             Rcpp::Rcout << "\r[" <<                                           //'\r' aka carriage return should move printer's cursor back at the beginning of the current line
                         std::string(cTotalLength * (m + 1.) / nIter, '#') <<        // printing filled part
                         std::string(cTotalLength * (1. - (m + 1.) / nIter), '-') << // printing empty part
                         "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
 
-
+    // std::cout << "...debug16\n";
         // update Weibull's quantities based on the new kappa
         // lambdas = mu.col(0) / std::tgamma(1.0+1.0/kappa);
         // weibullS = arma::exp(- arma::pow( y/lambdas, kappa));
@@ -134,26 +134,18 @@ void dirichlet(
                 dataclass
             );
         }
-
-        // update \betas
-        /*
-        ARMS_Gibbs::arms_gibbs_beta_weibull(
+    // std::cout << "...debug17\n";
+        // update all betas
+        ARMS_Gibbs::arms_gibbs_beta_dirichlet(
             armsPar,
             hyperpar,
             betas,
             gammas,
             tauSq,
             tau0Sq,
-
-            kappa,
             dataclass
         );
-        */
-
-        // update \betas' variance tauSq
-        // hyperpar.tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas);
-        // tauSq_mcmc[1+m] = hyperpar.tauSq;
-
+    // std::cout << "...debug18\n";
 #ifdef _OPENMP
         #pragma omp parallel for
 #endif
@@ -162,8 +154,6 @@ void dirichlet(
         for(unsigned int l=0; l<L; ++l)
         {
             arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
-            // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
-            // mu.col(l) = arma::exp( logMu );
         }
 
         // save results for un-thinned posterior mean
@@ -172,12 +162,12 @@ void dirichlet(
             beta_post += betas;
             gamma_post += gammas;
         }
-
+    // std::cout << "...debug19\n";
         // save results of thinned iterations
         if((m+1) % thin == 0)
         {
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
+            tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
@@ -187,7 +177,7 @@ void dirichlet(
                 dataclass,
                 loglik
             );
-
+    // std::cout << "...debug20\n";
             // save loglikelihoods
             loglikelihood_mcmc.row(1+nIter_thin_count) = loglik.t();
 

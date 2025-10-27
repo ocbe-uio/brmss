@@ -7,7 +7,6 @@
 #'
 #' @param y response variable. A vector, matrix or dataframe
 #' @param X input matrix or dataframe
-#' @param L number of response variables
 #' @param family a character string representing one of the built-in families
 #' @param nIter the number of iterations of the chain
 #' @param burnin number of iterations to discard at the start of the chain
@@ -26,7 +25,7 @@
 #' @param rangeList a list of ranges of initial values for parameters "kappa", "betas"
 #' @param hyperparList a list of relevant hyperparameters
 #'
-run_mcmc <- function(y, X, L, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList) {
-    .Call(`_brmss_run_mcmc`, y, X, L, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList)
+run_mcmc <- function(y, X, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList) {
+    .Call(`_brmss_run_mcmc`, y, X, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList)
 }
 
