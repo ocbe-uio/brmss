@@ -21,7 +21,9 @@ brmss(
 )
 }
 \arguments{
-\item{y}{response variable. A vector, matrix or dataframe}
+\item{y}{response variable. A vector, matrix or dataframe. For survival 
+outcomes, the first column of \code{y} is times and the second column is 
+events}
 
 \item{x}{input matrix or dataframe}
 

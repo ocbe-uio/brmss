@@ -131,15 +131,15 @@ private:
     );
 
     static double logPDFNormal(
-        const arma::vec& x, 
+        const arma::vec& x,
         const double& sigmaSq
     );
 
     static double logPbeta(
-           const arma::mat& betas,
-           double tauSq,
-           double kappa,
-           const DataClass& dataclass
+        const arma::mat& betas,
+        double tauSq,
+        double kappa,
+        const DataClass& dataclass
     );
 
 };

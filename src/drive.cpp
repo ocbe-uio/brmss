@@ -1,10 +1,8 @@
 // Main function for the MCMC loop
 
 
-#include "simple_gibbs.h"
-#include "arms_gibbs.h"
-#include "BVS.h"
-#include "global.h"
+#include "dirichlet.h"
+#include "weibull.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -159,23 +157,8 @@ Rcpp::List run_mcmc(
 
     // quantity 01
     arma::umat gammas = arma::ones<arma::umat>(p, L);
-    arma::umat gamma_mcmc;
-    arma::mat logP_gamma; // this is declared globally to be updated in the M-H sampler for gammas
     unsigned int gamma_acc_count; // count acceptance of gammas via M-H sampler
-    logP_gamma = arma::zeros<arma::mat>(p, L);
-    // }
-    gamma_acc_count = 0;
-    for(unsigned int l=0; l<L; ++l)
-    {
-        double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
-
-        for(unsigned int j=0; j<p; ++j)
-        {
-            gammas(j, l) = R::rbinom(1, pi);
-            logP_gamma(j, l) = BVS_Sampler::logPDFBernoulli(gammas(j, l), pi);
-        }
-    }
-    gamma_mcmc = arma::zeros<arma::umat>(1+nIter_thin, p*L);
+    arma::umat gamma_mcmc = arma::zeros<arma::umat>(1+nIter_thin, p*L);
     gamma_mcmc.row(0) = arma::vectorise(gammas).t();
 
     // mean parameter
@@ -192,13 +175,6 @@ Rcpp::List run_mcmc(
 
         // arma::vec logMu = arma::join_cols(arma::ones<arma::rowvec>(N), X) * betas.col(0);
         logMu = betas(0) + X * betas.submat(1, 0, p, 0);
-        // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
-        // mu.col(0) = arma::exp( logMu );
-        // lambdas = arma::pow( y / (mu.col(0) / std::tgamma(1. + 1./kappa)), kappa);
-        // lambdas.elem(arma::find(lambdas > upperbound)).fill(upperbound);
-
-        // // input constant data sets in a class
-        // DataClass dataclass(event, y, X, N, p, L);
     }
 
     // input constant data sets in a class
@@ -207,168 +183,76 @@ Rcpp::List run_mcmc(
     y.clear();
     event.clear();
 
-    // quantity 3
-    arma::mat proportion;
-    if(family == "dirichlet")
-    {
-        arma::mat alphas = arma::zeros<arma::mat>(N, L);
-        for(unsigned int l=0; l<L; ++l)
-        {
-            alphas.col(l) = arma::exp( betas(0, l) + dataclass.X * betas.submat(1, l, p, l) );
-        }
-        alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
-        alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
-        proportion = alphas / arma::repmat(arma::sum(alphas, 1), 1, L);
-    }
-
     // initializing posterior mean
     double kappa_post = 0.;
     arma::mat beta_post = arma::zeros<arma::mat>(arma::size(betas));
     arma::umat gamma_post = arma::zeros<arma::umat>(arma::size(gammas));
 
     arma::mat loglikelihood_mcmc = arma::zeros<arma::mat>(1+nIter_thin, N);
-    arma::vec loglik = arma::zeros<arma::vec>(N);
-    BVS_Sampler::loglikelihood(
-        betas,
-        kappa,
-        dataclass,
-        loglik
-    );
-    loglikelihood_mcmc.row(0) = loglik.t();
 
 
     // ###########################################################
-    // ## MCMC loop
+    // ## models for MCMC
     // ###########################################################
 
-    const unsigned int cTotalLength = 50;
-    //std::cout
-    Rprintf("Running MCMC iterations ...\n");
-    unsigned int nIter_thin_count = 0;
-    for (unsigned int m=0; m<nIter; ++m)
+    switch( familyType )
     {
-        // print progression cursor
-        if (m % 10 == 0 || m == (nIter - 1))
-            //std::cout
-            Rcpp::Rcout << "\r[" <<                                           //'\r' aka carriage return should move printer's cursor back at the beginning of the current line
-                        std::string(cTotalLength * (m + 1.) / nIter, '#') <<        // printing filled part
-                        std::string(cTotalLength * (1. - (m + 1.) / nIter), '-') << // printing empty part
-                        "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
-
-
-        // update Weibull's shape parameter kappa
-        ARMS_Gibbs::slice_kappa(
+    case Family_Type::weibull:
+        weibull(
+            nIter,
+            burnin,
+            thin,
             kappa,
-            armsPar.kappaMin,
-            armsPar.kappaMax,
-            hyperpar.kappaA,
-            hyperpar.kappaB,
-            dataclass,
-            logMu
-        );
-
-        // update Weibull's quantities based on the new kappa
-        // lambdas = mu.col(0) / std::tgamma(1.0+1.0/kappa);
-        // weibullS = arma::exp(- arma::pow( y/lambdas, kappa));
-
-        // update \gammas -- variable selection indicators
-        if (gamma_proposal == "simple")
-        {
-            BVS_Sampler::sampleGamma(
-                gammas,
-                gammaSampler,
-                familyType,
-                logP_gamma,
-                gamma_acc_count,
-                loglik,
-                armsPar,
-                hyperpar,
-                betas,
-                kappa,
-                tau0Sq,
-                tauSq,
-
-                dataclass
-            );
-        } else {
-            BVS_Sampler::sampleGammaProposalRatio(
-                gammas,
-                gammaSampler,
-                familyType,
-                logP_gamma,
-                gamma_acc_count,
-                loglik,
-                armsPar,
-                hyperpar,
-                betas,
-                kappa,
-                tau0Sq,
-                tauSq,
-
-                dataclass
-            );
-        }
-
-        // update \betas
-        ARMS_Gibbs::arms_gibbs_beta_weibull(
-            armsPar,
-            hyperpar,
+            tau0Sq,
+            tauSq,
             betas,
             gammas,
-            tauSq,
-            tau0Sq,
+            gamma_proposal,
+            gammaSampler,
+            familyType,
+            armsPar,
+            hyperpar,
+            dataclass,
 
-            kappa,
-            dataclass
+            kappa_mcmc,
+            kappa_post,
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
         );
+        break;
 
-        // update \betas' variance tauSq
-        // hyperpar.tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas);
-        // tauSq_mcmc[1+m] = hyperpar.tauSq;
+    case Family_Type::dirichlet:
+        dirichlet(
+            nIter,
+            burnin,
+            thin,
+            tau0Sq,
+            tauSq,
+            betas,
+            gammas,
+            gamma_proposal,
+            gammaSampler,
+            familyType,
+            armsPar,
+            hyperpar,
+            dataclass,
 
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
-
-        // update Weibull's quantities based on the new betas
-        for(unsigned int l=0; l<L; ++l)
-        {
-            logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
-            // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
-            // mu.col(l) = arma::exp( logMu );
-        }
-
-        // save results for un-thinned posterior mean
-        if(m >= burnin)
-        {
-            kappa_post += kappa;
-            beta_post += betas;
-            gamma_post += gammas;
-        }
-
-        // save results of thinned iterations
-        if((m+1) % thin == 0)
-        {
-            kappa_mcmc[1+nIter_thin_count] = kappa;
-            beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
-
-            gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
-
-            BVS_Sampler::loglikelihood(
-                betas,
-                kappa,
-                dataclass,
-                loglik
-            );
-
-            // save loglikelihoods
-            loglikelihood_mcmc.row(1+nIter_thin_count) = loglik.t();
-
-            ++nIter_thin_count;
-        }
-
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
+        );
+        break;
     }
+
 
     Rcpp::Rcout << "\n";
 
@@ -377,10 +261,10 @@ Rcpp::List run_mcmc(
     output_mcmc["kappa"] = kappa_mcmc;
     //output["phi"] = phi_mcmc;
     output_mcmc["betas"] = beta_mcmc;
-    arma::mat gamma_post_mean = arma::zeros<arma::mat>(arma::size(gamma_post));
     output_mcmc["gammas"] = gamma_mcmc;
     output_mcmc["gamma_acc_rate"] = ((double)gamma_acc_count) / ((double)nIter);
-    gamma_post_mean = arma::conv_to<arma::mat>::from(gamma_post) / ((double)(nIter - burnin));
+    // arma::mat gamma_post_mean = arma::zeros<arma::mat>(arma::size(gamma_post));
+    arma::mat gamma_post_mean = arma::conv_to<arma::mat>::from(gamma_post) / ((double)(nIter - burnin));
 
     output_mcmc["loglikelihood"] = loglikelihood_mcmc;
     output_mcmc["tauSq"] = tauSq_mcmc;

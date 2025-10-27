@@ -265,17 +265,17 @@ void BVS_Sampler::sampleGammaProposalRatio(
         );
 
         logPosteriorBeta = logPbeta(
-            betas,
-            tauSq,
-            kappa,
-            dataclass
-        );
+                               betas,
+                               tauSq,
+                               kappa,
+                               dataclass
+                           );
         logPosteriorBeta_proposal = logPbeta(
-            betas_proposal,
-            tauSq,
-            kappa,
-            dataclass
-        );
+                                        betas_proposal,
+                                        tauSq,
+                                        kappa,
+                                        dataclass
+                                    );
 
         break;
     }
@@ -546,10 +546,10 @@ double BVS_Sampler::logPDFNormal(const arma::vec& x, const double& sigmaSq)  // 
 }
 
 double BVS_Sampler::logPbeta(
-           const arma::mat& betas,
-           double tauSq,
-           double kappa,
-           const DataClass& dataclass)
+    const arma::mat& betas,
+    double tauSq,
+    double kappa,
+    const DataClass& dataclass)
 {
     unsigned int p = dataclass.X.n_cols;
 
@@ -561,7 +561,7 @@ double BVS_Sampler::logPbeta(
     double logprior = - arma::accu(betas % betas) / tauSq / 2.;
 
     arma::vec logpost_first = std::log(kappa) -
-                              kappa * (logMu - std::lgamma(1. + 1./kappa)) + 
+                              kappa * (logMu - std::lgamma(1. + 1./kappa)) +
                               (kappa - 1) * arma::log(dataclass.y);
     double logpost_first_sum = arma::sum( logpost_first.elem(arma::find(dataclass.event == 1)) );
 

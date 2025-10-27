@@ -7,7 +7,9 @@
 #'
 #' @importFrom Rcpp evalCpp
 #'
-#' @param y response variable. A vector, matrix or dataframe
+#' @param y response variable. A vector, matrix or dataframe. For survival 
+#' outcomes, the first column of \code{y} is times and the second column is 
+#' events
 #' @param x input matrix or dataframe
 #' @param family a character string representing one of the built-in families
 #' @param nIter the number of iterations of the chain
