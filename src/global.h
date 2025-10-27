@@ -26,6 +26,16 @@ inline double upperbound3 = UPPER_BOUND_3;
 inline double lowerbound = LOWER_BOUND;
 
 
+enum class Family_Type
+{
+    weibull = 1, dirichlet
+}; // scoped enum
+
+enum class Gamma_Sampler_Type
+{
+    bandit = 1, mc3
+}; // scoped enum
+
 class armsParmClass
 {
 public:

@@ -13,8 +13,9 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // run_mcmc
 Rcpp::List run_mcmc(arma::mat& y, arma::mat& X, const std::string& family, unsigned int nIter, unsigned int burnin, unsigned int thin, unsigned int tick, const std::string& gamma_sampler, const std::string& gamma_proposal, int threads, unsigned int n, int nsamp, int ninit, double convex, int npoint, const Rcpp::List& initList, const Rcpp::List& rangeList, const Rcpp::List& hyperparList);
-RcppExport SEXP _brmss_run_mcmc(SEXP ySEXP, SEXP XSEXP, SEXP familySEXP, SEXP nIterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP tickSEXP, SEXP gamma_samplerSEXP, SEXP gamma_proposalSEXP, SEXP threadsSEXP, SEXP nSEXP, SEXP nsampSEXP, SEXP ninitSEXP, SEXP convexSEXP, SEXP npointSEXP, SEXP initListSEXP, SEXP rangeListSEXP, SEXP hyperparListSEXP) {
-BEGIN_RCPP
+RcppExport SEXP _brmss_run_mcmc(SEXP ySEXP, SEXP XSEXP, SEXP familySEXP, SEXP nIterSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP tickSEXP, SEXP gamma_samplerSEXP, SEXP gamma_proposalSEXP, SEXP threadsSEXP, SEXP nSEXP, SEXP nsampSEXP, SEXP ninitSEXP, SEXP convexSEXP, SEXP npointSEXP, SEXP initListSEXP, SEXP rangeListSEXP, SEXP hyperparListSEXP)
+{
+    BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat& >::type y(ySEXP);
@@ -37,5 +38,5 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::List& >::type hyperparList(hyperparListSEXP);
     rcpp_result_gen = Rcpp::wrap(run_mcmc(y, X, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList));
     return rcpp_result_gen;
-END_RCPP
+    END_RCPP
 }

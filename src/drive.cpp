@@ -1,8 +1,8 @@
 // Main function for the MCMC loop
 
 
-#include "dirichlet.h"
-#include "weibull.h"
+#include "BVS_dirichlet.h"
+#include "BVS_weibull.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -114,10 +114,11 @@ Rcpp::List run_mcmc(
 
     // response family
     Family_Type familyType;
-    if ( family == "weibull" ) {
+    if ( family == "weibull" )
+    {
         familyType = Family_Type::weibull;
         L = 1;
-    } 
+    }
     else if ( family == "dirichlet" )
         familyType = Family_Type::dirichlet ;
     else
@@ -201,7 +202,7 @@ Rcpp::List run_mcmc(
     switch( familyType )
     {
     case Family_Type::weibull:
-        weibull(
+        BVS_weibull::mcmc(
             nIter,
             burnin,
             thin,
@@ -212,7 +213,6 @@ Rcpp::List run_mcmc(
             gammas,
             gamma_proposal,
             gammaSampler,
-            familyType,
             armsPar,
             hyperpar,
             dataclass,
@@ -230,7 +230,7 @@ Rcpp::List run_mcmc(
         break;
 
     case Family_Type::dirichlet:
-        dirichlet(
+        BVS_dirichlet::mcmc(
             nIter,
             burnin,
             thin,
@@ -240,7 +240,6 @@ Rcpp::List run_mcmc(
             gammas,
             gamma_proposal,
             gammaSampler,
-            familyType,
             armsPar,
             hyperpar,
             dataclass,

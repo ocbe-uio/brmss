@@ -81,7 +81,7 @@ double EvalFunction::log_dens_betas_weibull(
     double logpost_first_sum = arma::sum( logpost_first.elem(arma::find(event == 1)) );
 
     arma::vec logpost_second = arma::pow( y / lambdas, mydata_parm->kappa);
-    
+
     logpost_second.elem(arma::find(logpost_second > upperbound2)).fill(upperbound2);
     double logpost_second_sum =  arma::sum( - logpost_second );
     h = logpost_first_sum + logpost_second_sum + logprior;
