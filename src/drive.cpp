@@ -1,8 +1,9 @@
 // Main function for the MCMC loop
 
 
-#include "BVS_dirichlet.h"
+#include "BVS_gaussian.h"
 #include "BVS_weibull.h"
+#include "BVS_dirichlet.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -102,6 +103,8 @@ Rcpp::List run_mcmc(
     hyperparClass hyperpar(
         Rcpp::as<double>(hyperparList["piA"]),
         Rcpp::as<double>(hyperparList["piB"]),
+        Rcpp::as<double>(hyperparList["sigmaA"]),
+        Rcpp::as<double>(hyperparList["sigmaB"]),
         Rcpp::as<double>(hyperparList["tau0A"]),
         Rcpp::as<double>(hyperparList["tau0B"]),
         Rcpp::as<double>(hyperparList["tauA"]),
@@ -114,7 +117,27 @@ Rcpp::List run_mcmc(
 
     // response family
     Family_Type familyType;
-    if ( family == "weibull" )
+    if ( family == "gaussian" )
+    {
+        familyType = Family_Type::gaussian;
+    }
+    else if ( family == "logit" )
+    {
+        familyType = Family_Type::logit;
+    }
+    else if ( family == "probit" )
+    {
+        familyType = Family_Type::probit;
+    }
+    else if ( family == "poisson" )
+    {
+        familyType = Family_Type::poisson;
+    }
+    else if ( family == "beta" )
+    {
+        familyType = Family_Type::beta;
+    }
+    else if ( family == "weibull" )
     {
         familyType = Family_Type::weibull;
         L = 1;
@@ -154,6 +177,11 @@ Rcpp::List run_mcmc(
     beta_mcmc.row(0) = arma::vectorise(betas).t();
     arma::vec kappa_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
     kappa_mcmc[0] = kappa;
+
+    double sigmaSq = 1.;
+    arma::vec sigmaSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+    sigmaSq_mcmc[0] = sigmaSq; 
+    double sigmaSq_post = sigmaSq;
 
 // std::cout << "...debug42\n";
     // initializing relevant quantities; can be declared like arma::mat&
@@ -201,6 +229,50 @@ Rcpp::List run_mcmc(
 
     switch( familyType )
     {
+
+    case Family_Type::gaussian:
+        BVS_gaussian::mcmc(
+            nIter,
+            burnin,
+            thin,
+            sigmaSq,
+            tau0Sq,
+            tauSq,
+            betas,
+            gammas,
+            gamma_proposal,
+            gammaSampler,
+            hyperpar,
+            dataclass,
+
+            sigmaSq_mcmc,
+            sigmaSq_post,
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
+        );
+        break;
+
+    case Family_Type::logit:
+        ::Rf_error("Not yet implemented!");
+        break;
+
+    case Family_Type::probit:
+        ::Rf_error("Not yet implemented!");
+        break;
+
+    case Family_Type::poisson:
+        ::Rf_error("Not yet implemented!");
+        break;
+
+    case Family_Type::beta:
+        ::Rf_error("Not yet implemented!");
+        break;
+
     case Family_Type::weibull:
         BVS_weibull::mcmc(
             nIter,

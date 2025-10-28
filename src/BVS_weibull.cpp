@@ -38,15 +38,12 @@ void BVS_weibull::mcmc(
     arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);; // this is declared to be updated in the M-H sampler for gammas
 
     gamma_acc_count = 0;
-    for(unsigned int l=0; l<L; ++l)
-    {
-        double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
+    double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
 
-        for(unsigned int j=0; j<p; ++j)
-        {
-            gammas(j, l) = R::rbinom(1, pi);
-            logP_gamma(j, l) = BVS_subfunc::logPDFBernoulli(gammas(j, l), pi);
-        }
+    for(unsigned int j=0; j<p; ++j)
+    {
+        gammas(j) = R::rbinom(1, pi);
+        logP_gamma(j) = BVS_subfunc::logPDFBernoulli(gammas(j), pi);
     }
 
     arma::vec loglik = arma::zeros<arma::vec>(N);
@@ -163,16 +160,6 @@ void BVS_weibull::mcmc(
         // hyperpar.tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas);
         // tauSq_mcmc[1+m] = hyperpar.tauSq;
 
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
-
-        // update Weibull's quantities based on the new betas
-        for(unsigned int l=0; l<L; ++l)
-        {
-            logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
-        }
-
         // save results for un-thinned posterior mean
         if(m >= burnin)
         {
@@ -207,7 +194,7 @@ void BVS_weibull::mcmc(
 
 }
 
-// TODO: make loglikelihood general for other response types
+// individual loglikelihoods
 void BVS_weibull::loglikelihood(
     const arma::mat& betas,
     double kappa,
@@ -268,10 +255,10 @@ void BVS_weibull::sampleGamma(
 
     // decide on one component
     unsigned int componentUpdateIdx = 0;
-    if (L > 1)
-    {
-        componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
-    }
+    // if (L > 1)
+    // {
+    //     componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
+    // }
     arma::uvec singleIdx_k = { componentUpdateIdx };
 
     // Update the proposed Gamma with 'updateIdx' renewed via its address
@@ -396,10 +383,10 @@ void BVS_weibull::sampleGammaProposalRatio(
 
     // decide on one component
     unsigned int componentUpdateIdx = 0;
-    if (L > 1)
-    {
-        componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
-    }
+    // if (L > 1)
+    // {
+    //     componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
+    // }
     arma::uvec singleIdx_k = { componentUpdateIdx };
 
     // Update the proposed Gamma with 'updateIdx' renewed via its address

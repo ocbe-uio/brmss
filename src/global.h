@@ -28,7 +28,7 @@ inline double lowerbound = LOWER_BOUND;
 
 enum class Family_Type
 {
-    weibull = 1, dirichlet
+    gaussian=1, logit, probit, poisson, beta, weibull, dirichlet
 }; // scoped enum
 
 enum class Gamma_Sampler_Type
@@ -90,6 +90,9 @@ public:
     const double piA;
     const double piB;
 
+    const double sigmaA;
+    const double sigmaB;
+
     // const double tau0Sq;
     const double tau0A;
     const double tau0B;
@@ -105,6 +108,9 @@ public:
         double piA_,
         double piB_,
 
+        double sigmaA_,
+        double sigmaB_,
+
         double tau0A_,
         double tau0B_,
         double tauA_,
@@ -115,6 +121,9 @@ public:
     ) :
         piA(piA_),
         piB(piB_),
+
+        sigmaA(sigmaA_),
+        sigmaB(sigmaB_),
 
         tau0A(tau0A_),
         tau0B(tau0B_),

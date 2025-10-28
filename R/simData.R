@@ -11,7 +11,7 @@
 #' @param p number of covariates in each cluster
 #' @param L number of response variables
 #' @param kappas value of the Weibull's shape parameter
-#' @param model one of \code{c("linear", "loglinear", "logistic", "probit",
+#' @param model one of \code{c("gaussian", "logit", "probit", "poisson",
 #' "beta", "multinomial", "dirichlet", "cox")}
 #'
 #' @return An object of a list
