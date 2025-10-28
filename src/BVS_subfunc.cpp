@@ -204,7 +204,14 @@ double BVS_subfunc::logPDFBernoulli(unsigned int x, double pi)
         return (double)(x) * std::log(pi) + (1.-(double)(x)) * std::log(1. - pi);
 }
 
-double BVS_subfunc::logPDFNormal(const arma::vec& x, const double& sigmaSq)  // zeroMean and independentVar
+double BVS_subfunc::logPDFNormal(double x, double sigmaSq)  // zeroMean
+{
+
+    return -0.5*log(2.*M_PI) -0.5*std::log(sigmaSq) - 0.5 * x * x / sigmaSq;
+
+}
+
+double BVS_subfunc::logPDFNormal(const arma::vec& x, double sigmaSq)  // zeroMean and independentVar
 {
     unsigned int k = x.n_elem;
     double tmp = (double)k * std::log(sigmaSq); // log-determinant(Sigma)

@@ -158,7 +158,8 @@ brmss <- function(y, x,
     initList <- list()
 
     initList$kappa <- 0.9
-    initList$betas <- matrix(0, nrow = NCOL(x) + 1, ncol = L) # include intercept
+    initList$betas <- matrix(0, nrow = NCOL(x) + 1, ncol = L) 
+    initList$betas[1] <- 0.1 # initial intercept 0.1
     initList$gammas <- initList$betas[-1, ]
   }
 

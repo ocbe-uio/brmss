@@ -12,7 +12,7 @@ plotMCMC(dat, datMCMC, estimator = "tau")
 \item{datMCMC}{returned object from the main function \code{brmss()}}
 
 \item{estimator}{print estimators, one of
-\code{c("beta", "zeta", "gamma", "eta")}}
+\code{c("beta", "gamma", "tau", "sigma", "kappa")}}
 }
 \value{
 A \code{ggplot2::ggplot} object. See \code{?ggplot2::ggplot} for more

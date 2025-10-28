@@ -1,5 +1,6 @@
 /* Log-likelihood for the use in Metropolis-Hastings sampler*/
 
+#include "simple_gibbs.h"
 #include "arms_gibbs.h"
 #include "BVS_subfunc.h"
 #include "BVS_weibull.h"
@@ -90,6 +91,9 @@ void BVS_weibull::mcmc(
                         "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
 
 
+        tau0Sq = sampleTau0(hyperpar.tau0A, hyperpar.tau0B, betas[0]); // TODO: it seems not better if fixing tau0Sq=10
+        tauSq[0] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.rows(1,p));
+
         // update Weibull's shape parameter kappa
         ARMS_Gibbs::slice_kappa(
             kappa,
@@ -156,6 +160,7 @@ void BVS_weibull::mcmc(
             dataclass
         );
 
+        logMu = betas(0) + dataclass.X * betas.rows(1, p);
         // update \betas' variance tauSq
         // hyperpar.tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas);
         // tauSq_mcmc[1+m] = hyperpar.tauSq;
@@ -232,7 +237,7 @@ void BVS_weibull::sampleGamma(
 
     arma::mat& betas,
     double kappa,
-    double& tau0Sq,
+    double tau0Sq,
     arma::vec& tauSq,
 
     const DataClass &dataclass)
@@ -361,7 +366,7 @@ void BVS_weibull::sampleGammaProposalRatio(
 
     arma::mat& betas,
     double kappa,
-    double& tau0Sq,
+    double tau0Sq,
     arma::vec& tauSq,
 
     const DataClass &dataclass)

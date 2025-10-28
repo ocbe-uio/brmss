@@ -51,13 +51,14 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
+        double& logPbeta,
         arma::vec& loglik,
 
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
         double sigmaSq,
-        double& tau0Sq,
+        double tau0Sq,
         arma::vec& tauSq,
 
         const DataClass &dataclass
@@ -68,24 +69,25 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
+        double& logPbeta,
         arma::vec& loglik,
 
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
         double sigmaSq,
-        double& tau0Sq,
+        double tau0Sq,
         arma::vec& tauSq,
 
         const DataClass &dataclass
     );
 
     static double gibbs_sigmaSq(
-    double a,
-    double b,
-    const arma::vec& betas,
-    const DataClass& dataclass
-);
+        double a,
+        double b,
+        const DataClass& dataclass,
+        const arma::vec& mu
+    );
 
     static arma::vec randMvNormal(
         const arma::vec &m,
@@ -98,13 +100,12 @@ private:
 
     static double gibbs_beta_gaussian(
         arma::mat& betas,
-        const arma::umat& gammas,
         double tau0Sq,
         double tauSq,
         double sigmaSq,
         const DataClass& dataclass
     );
-
+    /*
     static double logPbeta(
         const arma::mat& betas,
         double tau0Sq,
@@ -112,6 +113,7 @@ private:
         double sigmaSq,
         const DataClass& dataclass
     );
+    */
 
     static double logPDFNormal(
         const arma::vec& x,

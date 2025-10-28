@@ -70,9 +70,15 @@ simData <- function(n = 200, p = 10, L = 1,
   x <- scale(mvnfast::rmvn(n, rep(0, p), diag(p)))
   attr(x, "scaled:center") <- attr(x, "scaled:scale") <- NULL
   colnames(x) <- paste0("X", 1:p)
-
+  
+  ## simulate Gaussian responses 
+  if (model == "gaussian") {
+    y <- cbind(1, x) %*% betas + rnorm(n)
+    dat <- list(y = y, x = x, betas = betas)
+  }
+  
+  
   ## simulate proportions from Dirichlet distribution (n, alpha=1:L)
-  y <- NULL
   if (model == "dirichlet") {
     if (L == 1) {
       stop("To simulate Dirichlet data, argument 'L' must be at least 2!")

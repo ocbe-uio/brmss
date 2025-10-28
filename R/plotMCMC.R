@@ -11,7 +11,7 @@
 #' @param dat input data as a list containing outcomes and covariates
 #' @param datMCMC returned object from the main function \code{brmss()}
 #' @param estimator print estimators, one of
-#' \code{c("beta", "zeta", "gamma", "eta")}
+#' \code{c("beta", "gamma", "tau", "sigma", "kappa")}
 #'
 #' @return A \code{ggplot2::ggplot} object. See \code{?ggplot2::ggplot} for more
 #' details of the object.
@@ -95,7 +95,7 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
     }
   }
 
-  if (any(estimator %in% c("kappa", "tau"))) {
+  if (any(estimator %in% c("kappa", "tau", "sigma"))) {
     layout(matrix(seq_along(estimator), ncol = 1))
     par(mar = c(2, 4.1, 2, 2))
     if ("kappa" %in% estimator) {
@@ -114,6 +114,15 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
         type = "l", lty = 1,
         ylab = expression(tau^2), xlab = "MCMC iteration",
         ylim = summary(as.vector(tauSq.mcmc))[c(1, 6)]
+      )
+    }
+    
+    if ("sigma" %in% estimator) {
+      sigmaSq.mcmc <- datMCMC$output$sigmaSq
+      plot(sigmaSq.mcmc,
+           type = "l", lty = 1,
+           ylab = expression(sigma^2), xlab = "MCMC iteration",
+           ylim = summary(as.vector(sigmaSq.mcmc))[c(1, 6)]
       )
     }
   }

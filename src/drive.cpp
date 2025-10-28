@@ -87,6 +87,11 @@ Rcpp::List run_mcmc(
     unsigned int p = X.n_cols;
     unsigned int L = y.n_cols;
 
+    if ( family == "weibull" )
+    {
+        L = 1;
+    }
+
     // arms parameters in a class
     int metropolis = 1;
     armsParmClass armsPar(n, nsamp, ninit, metropolis, convex, npoint,
@@ -95,10 +100,6 @@ Rcpp::List run_mcmc(
                           Rcpp::as<double>(rangeList["betaMin"]),
                           Rcpp::as<double>(rangeList["betaMax"]));
 
-// std::cout << "...debug2\n";
-    // hyperparameters
-    arma::vec tauSq = arma::ones<arma::vec>(L);
-    double tau0Sq = 1.;
 
     hyperparClass hyperpar(
         Rcpp::as<double>(hyperparList["piA"]),
@@ -115,11 +116,46 @@ Rcpp::List run_mcmc(
 
     // hyperparList = Rcpp::List();  // Clear it by creating a new empty List
 
+    // initializing relevant quantities
+    unsigned int nIter_thin = nIter / thin;
+
+    arma::mat betas = Rcpp::as<arma::mat>(initList["betas"]);
+    arma::mat beta_mcmc = arma::zeros<arma::mat>(1+nIter_thin, (p+1)*L);
+    beta_mcmc.row(0) = arma::vectorise(betas).t();
+    // initializing posterior mean
+    arma::mat beta_post = arma::zeros<arma::mat>(arma::size(betas));
+
+    arma::umat gammas = arma::ones<arma::umat>(p, L);
+    unsigned int gamma_acc_count; // count acceptance of gammas via M-H sampler
+    arma::umat gamma_mcmc = arma::zeros<arma::umat>(1+nIter_thin, p*L);
+    gamma_mcmc.row(0) = arma::vectorise(gammas).t();
+    arma::umat gamma_post = arma::zeros<arma::umat>(arma::size(gammas));
+
+    double tau0Sq = 1.;
+    arma::vec tauSq = arma::ones<arma::vec>(L); // Note: only the 1st element valid for univariate response (L=1)
+    arma::vec tauSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+    tauSq_mcmc[0] = tauSq[0]; // TODO: only keep the first one for now
+
+
+    // declare family-specific parameters but not initialize to save space
+    double kappa;
+    arma::vec kappa_mcmc;
+    double kappa_post;
+
+    double sigmaSq;
+    arma::vec sigmaSq_mcmc;
+    double sigmaSq_post;
+
+
     // response family
     Family_Type familyType;
     if ( family == "gaussian" )
     {
         familyType = Family_Type::gaussian;
+        sigmaSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+        sigmaSq = 1.;
+        sigmaSq_mcmc[0] = sigmaSq;
+        sigmaSq_post = sigmaSq;
     }
     else if ( family == "logit" )
     {
@@ -141,6 +177,10 @@ Rcpp::List run_mcmc(
     {
         familyType = Family_Type::weibull;
         L = 1;
+        kappa = Rcpp::as<double>(initList["kappa"]);
+        kappa_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+        kappa_mcmc[0] = kappa;
+        kappa_post = kappa;
     }
     else if ( family == "dirichlet" )
         familyType = Family_Type::dirichlet ;
@@ -149,8 +189,7 @@ Rcpp::List run_mcmc(
         Rprintf("ERROR: Wrong type of family given!");
         return 1;
     }
-    // TODO: add more families
-// std::cout << "...debug3\n";
+
     // Gamma Sampler
     Gamma_Sampler_Type gammaSampler;
     if ( gamma_sampler == "bandit" )
@@ -162,37 +201,7 @@ Rcpp::List run_mcmc(
         Rprintf("ERROR: Wrong type of Gamma Sampler given!");
         return 1;
     }
-// std::cout << "...debug4\n";
-    // initial values of key parameters and save them in a struct object
-    arma::mat betas = Rcpp::as<arma::mat>(initList["betas"]);
-    double kappa = Rcpp::as<double>(initList["kappa"]);
-    // initList = Rcpp::List();  // Clear it by creating a new empty List
 
-// std::cout << "...debug41\n";
-    unsigned int nIter_thin = nIter / thin;
-    // initializing mcmc results
-    arma::vec tauSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
-    tauSq_mcmc[0] = tauSq[0]; // TODO: only keep the first one for now
-    arma::mat beta_mcmc = arma::zeros<arma::mat>(1+nIter_thin, (p+1)*L);
-    beta_mcmc.row(0) = arma::vectorise(betas).t();
-    arma::vec kappa_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
-    kappa_mcmc[0] = kappa;
-
-    double sigmaSq = 1.;
-    arma::vec sigmaSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
-    sigmaSq_mcmc[0] = sigmaSq; 
-    double sigmaSq_post = sigmaSq;
-
-// std::cout << "...debug42\n";
-    // initializing relevant quantities; can be declared like arma::mat&
-
-    // quantity 01
-    arma::umat gammas = arma::ones<arma::umat>(p, L);
-    unsigned int gamma_acc_count; // count acceptance of gammas via M-H sampler
-    arma::umat gamma_mcmc = arma::zeros<arma::umat>(1+nIter_thin, p*L);
-    gamma_mcmc.row(0) = arma::vectorise(gammas).t();
-
-// std::cout << "...debug43\n";
     // mean parameter
     // arma::mat mu = arma::zeros<arma::mat>(N, L);
     // arma::vec mu;
@@ -214,11 +223,6 @@ Rcpp::List run_mcmc(
     X.clear();
     y.clear();
     event.clear();
-
-    // initializing posterior mean
-    double kappa_post = 0.;
-    arma::mat beta_post = arma::zeros<arma::mat>(arma::size(betas));
-    arma::umat gamma_post = arma::zeros<arma::umat>(arma::size(gammas));
 
     arma::mat loglikelihood_mcmc = arma::zeros<arma::mat>(1+nIter_thin, N);
 // std::cout << "...debug6\n";
@@ -327,7 +331,6 @@ Rcpp::List run_mcmc(
         break;
     }
 
-// std::cout << "...debug7\n";
     Rcpp::Rcout << "\n";
 
     // wrap all outputs
@@ -342,13 +345,16 @@ Rcpp::List run_mcmc(
 
     output_mcmc["loglikelihood"] = loglikelihood_mcmc;
     output_mcmc["tauSq"] = tauSq_mcmc;
+    output_mcmc["sigmaSq"] = sigmaSq_mcmc;
 
     kappa_post /= ((double)(nIter - burnin));
     beta_post /= ((double)(nIter - burnin));
+    sigmaSq_post /= ((double)(nIter - burnin));
     output_mcmc["post"] = Rcpp::List::create(
                               Rcpp::Named("kappa") = kappa_post,
                               Rcpp::Named("betas") = beta_post,
-                              Rcpp::Named("gammas") = gamma_post_mean
+                              Rcpp::Named("gammas") = gamma_post_mean,
+                              Rcpp::Named("sigmaSq") = sigmaSq_post
                           );
 
     return output_mcmc;

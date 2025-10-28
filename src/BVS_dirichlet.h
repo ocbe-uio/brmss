@@ -54,7 +54,7 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double& tau0Sq,
+        double tau0Sq,
         arma::vec& tauSq,
 
         const DataClass &dataclass
@@ -71,7 +71,7 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double& tau0Sq,
+        double tau0Sq,
         arma::vec& tauSq,
 
         const DataClass &dataclass

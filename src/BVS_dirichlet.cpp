@@ -1,5 +1,6 @@
 /* Log-likelihood for the use in Metropolis-Hastings sampler*/
 
+#include "simple_gibbs.h"
 #include "arms_gibbs.h"
 #include "BVS_subfunc.h"
 #include "BVS_dirichlet.h"
@@ -139,11 +140,15 @@ void BVS_dirichlet::mcmc(
         #pragma omp parallel for
 #endif
 
-        // update Weibull's quantities based on the new betas
+        // update quantities based on the new betas
         for(unsigned int l=0; l<L; ++l)
         {
             arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
+
+            // update coefficient's variances
+            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p,l));
         }
+        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t()); 
 
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -218,7 +223,7 @@ void BVS_dirichlet::sampleGamma(
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double& tau0Sq,
+    double tau0Sq,
     arma::vec& tauSq,
 
     const DataClass &dataclass)
@@ -287,8 +292,8 @@ void BVS_dirichlet::sampleGamma(
         hyperpar,
         betas_proposal,
         proposedGamma,
-        tauSq[componentUpdateIdx],
-        tau0Sq,
+        tauSq[componentUpdateIdx], // here fixed tauSq
+        tau0Sq, // here fixed tau0Sq
         dataclass
     );
 
@@ -347,7 +352,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double& tau0Sq,
+    double tau0Sq,
     arma::vec& tauSq,
 
     const DataClass &dataclass)
@@ -411,7 +416,15 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     double logPosteriorBeta = 0.;
     double logPosteriorBeta_proposal = 0.;
 
-    double TOOD = 0.; // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
+    std::string gamma_proposal;
+    if (gamma_proposal == "simple")
+    {
+        double TOOD = 0.; // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
+    }
+    else
+    {
+        double TOOD = 0.;
+    }
 
     double logPriorBetaRatio = BVS_subfunc::logPDFNormal(betas_proposal, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
     double logProposalBetaRatio = logPosteriorBeta - logPosteriorBeta_proposal;

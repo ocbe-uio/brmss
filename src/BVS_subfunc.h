@@ -30,7 +30,12 @@ public:
 
     static double logPDFNormal(
         const arma::vec& x,
-        const double& sigmaSq
+        double sigmaSq
+    );
+
+    static double logPDFNormal(
+        double x,
+        double sigmaSq
     );
 
 private:

@@ -1,7 +1,6 @@
 // Gibbs sampling for univariate and multivariate ARMS
 
 #include "arms_gibbs.h"
-#include "simple_gibbs.h"
 
 // Multivariate ARMS via Gibbs sampler for all responses of Dirichlet model
 void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
@@ -10,7 +9,7 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
     arma::mat& currentPars,
     arma::umat gammas,
     arma::vec& tauSq,
-    double& tau0Sq,
+    double tau0Sq,
     const DataClass &dataclass
 )
 {
@@ -40,14 +39,12 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
     mydata->p = p;
     mydata->L = L;
     mydata->X = dataclass.X.memptr();
-    mydata->y = dataclass.y.memptr();
+    mydata->y = dataclass.y.memptr();        
+    mydata->tau0Sq = tau0Sq;
 
     for (unsigned int l = 0; l < L; ++l)
     {
         // Gibbs sampling
-        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, currentPars.row(0).t()); // TODO: it seems not better if fixing tau0Sq=10
-        mydata->tau0Sq = tau0Sq;
-        tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, currentPars.submat(1,l,p,l));
         mydata->tauSq = tauSq[l];
 
         for (unsigned int j = 0; j < p+1; ++j)
@@ -179,8 +176,8 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
     const hyperparClass& hyperpar,
     arma::mat& currentPars,
     arma::umat gammas,
-    double& tauSq,
-    double& tau0Sq,
+    double tauSq,
+    double tau0Sq,
 
     double kappa,
     const DataClass &dataclass
@@ -211,17 +208,14 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
     mydata->p = p;
     mydata->N = N;
     mydata->kappa = kappa;
+    mydata->tau0Sq = tau0Sq;
+    mydata->tauSq = tauSq;
     // mydata->mu = mu.memptr();
     mydata->X = dataclass.X.memptr();
     mydata->y = dataclass.y.memptr();
     mydata->event = dataclass.event.memptr();
 
     // Gibbs sampling
-
-    tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, currentPars.row(0).t());
-    mydata->tau0Sq = tau0Sq;
-    tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, currentPars.submat(1,0,p,0));
-    mydata->tauSq = tauSq;
 
     for (unsigned int j = 0; j < p+1; ++j)
     {
