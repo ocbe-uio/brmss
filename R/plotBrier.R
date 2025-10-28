@@ -5,9 +5,9 @@
 #'
 #' @name plotBrier
 #'
-#' @importFrom survival Surv coxph
+#' @importFrom survival Surv coxph 
 #' @importFrom riskRegression Score
-#' @importFrom stats median as.formula
+#' @importFrom stats median as.formula predict pweibull
 #' @importFrom ggplot2 ggplot aes .data geom_step theme element_blank xlab ylab
 #' @importFrom ggplot2 theme_bw guides guide_legend
 #' @importFrom utils globalVariables
@@ -98,8 +98,15 @@ plotBrier <- function(dat, datMCMC,
     survfit0 <- survival::survfit(fitCox, survObj.new) # data.frame(x01=survObj.new$x01,x02=survObj.new$x02))
     pred.fitCox <- t(1 - summary(survfit0, times = time_eval, extend = TRUE)$surv)
 
+    fitWeibull <- survival::survreg(formula.tmp, data = survObj, dist='weibull')#, scale=0, y = TRUE, x = TRUE)
+    mu_hat <- predict(fitWeibull, newdata = data.frame(dat.new$x), type="link") 
+    pred.fitWeibull <- t(sapply(mu_hat, function(i){
+      pweibull(time_eval, shape = 1 / fitWeibull$scale, scale = exp(i))
+      }))
+    
     list.models <- list(
       "Cox" = pred.fitCox,
+      "Weibull" = pred.fitWeibull,
       "brmss" = pred.prob
     )
     g <- riskRegression::Score(
