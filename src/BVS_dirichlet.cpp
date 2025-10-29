@@ -406,26 +406,18 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     }
 
     arma::mat proposedBeta = betas;
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // +1 due
 
-    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
-    double logPosteriorBeta = 0.;
-    double logPosteriorBeta_proposal = 0.;
-
-    std::string gammaProposal;
-    if (gammaProposal == "simple")
-    {
-        // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
-        ::Rf_error("Not yet implemented!");
-    }
-    else
-    {
-        // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
-        ::Rf_error("Not yet implemented!");
-    }
-
-    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
-    double logProposalBetaRatio = logPosteriorBeta - logPosteriorBeta_proposal;
-
+    ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
+        componentUpdateIdx,
+        armsPar,
+        hyperpar,
+        proposedBeta,
+        proposedGamma,
+        tau0Sq, // here fixed tau0Sq
+        tauSq[componentUpdateIdx], // here fixed tauSq
+        dataclass
+    );
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
@@ -433,6 +425,29 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     loglikelihood( proposedBeta, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
+
+    // update density of beta priors
+    double logP_beta = 0.;
+    double proposedBetaPrior = 0.;
+    logP_beta = logPBeta(
+                    betas,
+                    tauSq,
+                    dataclass
+                );
+    proposedBetaPrior = logPBeta(
+                            proposedBeta,
+                            tauSq,
+                            dataclass
+                        );
+    //// the following is the same as using logPBeta() above
+    // double logP_beta = loglik + logprior;
+    // double proposedBetaPrior = proposedLikelihood + proposedLogprior;
+
+    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta.col(componentUpdateIdx), tauSq[componentUpdateIdx]) -
+                               BVS_subfunc::logPDFNormal(betas.col(componentUpdateIdx), tauSq[componentUpdateIdx]);
+    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+
+    // TODO: check if 'logProposalBetaRatio == -(logLikelihoodRatio + logPriorBetaRatio)'
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +
@@ -469,4 +484,43 @@ void BVS_dirichlet::sampleGammaProposalRatio(
         }
     }
     // return gammas;
+}
+
+double BVS_dirichlet::logPBeta(
+    const arma::mat& betas,
+    const arma::vec& tauSq,
+    const DataClass& dataclass
+)
+{
+    // dimensions
+    unsigned int N = dataclass.X.n_rows;
+    unsigned int L = dataclass.y.n_cols;
+
+    arma::mat alphas = arma::zeros<arma::mat>(N, L);
+    arma::vec alphas_Rowsum;
+    double logprior = 0.;
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+
+    for(unsigned int l=0; l<L; ++l)
+    {
+        alphas.col(l) = arma::exp( dataclass.X * betas.col(l) );
+        logprior +=  -arma::sum(betas.col(l) % betas.col(l)) / tauSq[l] / 2.;
+    }
+    alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
+    alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
+    alphas_Rowsum = arma::sum(alphas, 1);
+
+    double loglik = arma::sum(
+        arma::lgamma(alphas_Rowsum) - 
+        arma::sum(arma::lgamma(alphas), 1) + 
+        arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 )
+    );
+
+
+    double logP = loglik + logprior;
+
+    return logP;
 }

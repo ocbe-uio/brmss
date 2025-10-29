@@ -77,6 +77,12 @@ private:
         const DataClass &dataclass
     );
 
+    static double logPBeta(
+        const arma::mat& betas,
+        const arma::vec& tauSq,
+        const DataClass& dataclass
+    );
+
 };
 
 

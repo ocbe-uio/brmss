@@ -83,7 +83,7 @@ private:
         const DataClass &dataclass
     );
 
-    static double logP_beta(
+    static double logPBeta(
         const arma::mat& betas,
         double tauSq,
         double kappa,
