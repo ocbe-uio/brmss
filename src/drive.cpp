@@ -201,7 +201,7 @@ Rcpp::List run_mcmc(
         familyType = Family_Type::dirichlet ;
     else
     {
-        Rprintf("ERROR: Wrong type of family given!");
+        ::Rf_error("ERROR: Wrong type of family given!");
         return 1;
     }
 
@@ -217,7 +217,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        Rprintf("ERROR: Wrong type of gamma_sampler given!");
+        ::Rf_error("ERROR: Wrong type of gamma_sampler given!");
         return 1;
     }
 
@@ -237,7 +237,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        Rprintf("ERROR: Wrong type of gamma_gibbs given!");
+        ::Rf_error("ERROR: Wrong type of gamma_gibbs given!");
         return 1;
     }
 

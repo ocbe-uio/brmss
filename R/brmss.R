@@ -118,8 +118,8 @@ brmss <- function(y, x,
   cl <- match.call()
 
   gammaSampler <- tolower(gammaSampler)
-  if (!gammaSampler %in% c("mc3", "bandit", "gibbs")) {
-    stop('Argument "gammaSampler" must be one of c("mc3", "bandit", "gibbs")!')
+  if (!gammaSampler %in% c("mc3", "bandit")) {
+    stop('Argument "gammaSampler" must be one of c("mc3", "bandit")!')
   }
   
   gammaGibbs <- tolower(gammaGibbs)
