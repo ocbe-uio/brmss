@@ -6,6 +6,7 @@
 * Implement linear regression
 
 * TODO: try the gibbs sampler for gammas in linear regression, to see if it works
+* TODO: make gammas' first element for intercept, make X's first column to be 1
 
 * TODO: Check if better techniques instead of hard upper- or lower-bounds for exponential/log scales!
 * TODO: add a complete version of proposal ratio of M-H

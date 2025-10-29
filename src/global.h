@@ -33,7 +33,7 @@ enum class Family_Type
 
 enum class Gamma_Sampler_Type
 {
-    bandit = 1, mc3
+    bandit = 1, mc3, gibbs
 }; // scoped enum
 
 class armsParmClass

@@ -90,43 +90,74 @@ void BVS_gaussian::mcmc(
                   );
 
         // update \gammas -- variable selection indicators
-        if (gammaProposal == "simple")
+        if (gammaSampler != Gamma_Sampler_Type::gibbs) 
         {
-            sampleGamma(
-                gammas,
-                gammaSampler,
-                logP_gamma,
-                gamma_acc_count,
-                logP_beta,
-                loglik,
-                hyperpar,
-                betas,
-                sigmaSq,
-                tau0Sq,
-                tauSq,
+            if (gammaProposal == "simple")
+            {
+                sampleGamma(
+                    gammas,
+                    gammaSampler,
+                    logP_gamma,
+                    gamma_acc_count,
+                    logP_beta,
+                    loglik,
+                    hyperpar,
+                    betas,
+                    sigmaSq,
+                    tau0Sq,
+                    tauSq,
 
-                dataclass
-            );
-        }
+                    dataclass
+                );
+            }
+            else
+            {
+                sampleGammaProposalRatio(
+                    gammas,
+                    gammaSampler,
+                    logP_gamma,
+                    gamma_acc_count,
+                    logP_beta,
+                    loglik,
+                    hyperpar,
+                    betas,
+                    sigmaSq,
+                    tau0Sq,
+                    tauSq,
+
+                    dataclass
+                );
+            }
+        } 
         else
         {
-            sampleGammaProposalRatio(
-                gammas,
-                gammaSampler,
-                logP_gamma,
-                gamma_acc_count,
-                logP_beta,
-                loglik,
-                hyperpar,
-                betas,
-                sigmaSq,
-                tau0Sq,
-                tauSq,
+            // Gibbs sampling for gammas as Kuo & Mallick (1998, Sankhyā)
 
-                dataclass
-            );
+            int n_updates = std::min(10., std::ceil( (double)p ));
+            Rcpp::IntegerVector entireIdx = Rcpp::seq( 0, p - 1);
+            // random order of indexes for better mixing
+            arma::uvec updateIdx = Rcpp::as<arma::uvec>(Rcpp::sample(entireIdx, n_updates, false)); // here 'replace = false'
+            
+            double pi = 0.5;
+            for (auto j : updateIdx)
+            {
+                arma::mat thetaStar = betas;
+                thetaStar.elem(1 + arma::find(gammas == 0)).fill(0.);
+                arma::mat thetaStarStar = thetaStar;
+                thetaStar(j) = betas(j);
+                thetaStarStar(j) = 0.;
+
+                double quad = arma::as_scalar((dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)).t() * 
+                    (dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)));
+                double c_j = pi * std::exp(-0.5/sigmaSq * quad);
+                quad = arma::as_scalar((dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)).t() * 
+                    (dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)));
+                double d_j = (1.-pi) * std::exp(-0.5/sigmaSq * quad);
+
+                double pTilde = c_j/(c_j+d_j);
+                gammas(j) = R::rbinom(1, pTilde);
+            }
         }
-
 
         // update \betas
 
@@ -136,6 +167,7 @@ void BVS_gaussian::mcmc(
         // (void)gibbs_beta_gaussian(
         logP_beta = gibbs_beta_gaussian(
                        betas,
+                       gammas,
                        tau0Sq,
                        tauSq[0],
                        sigmaSq,
@@ -248,6 +280,11 @@ void BVS_gaussian::sampleGamma(
     case Gamma_Sampler_Type::mc3:
         logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
         break;
+
+    case Gamma_Sampler_Type::gibbs:
+        // Impossible in this case!
+        ::Rf_error("Something going wrong in file 'src/BVS_gaussian.cpp'!");
+        break;
     }
 
     // note only one outcome is updated
@@ -275,6 +312,7 @@ void BVS_gaussian::sampleGamma(
     // (void)gibbs_beta_gaussian()
     double proposedBetaPrior = gibbs_beta_gaussian(
                                    proposedBeta,
+                                   proposedGamma,
                                    tau0Sq,
                                    tauSq[0],
                                    sigmaSq,
@@ -375,6 +413,11 @@ void BVS_gaussian::sampleGammaProposalRatio(
     case Gamma_Sampler_Type::mc3:
         logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
         break;
+
+    case Gamma_Sampler_Type::gibbs:
+        // Impossible in this case!
+        ::Rf_error("Something going wrong in file 'src/BVS_gaussian.cpp'!");
+        break;
     }
 
     // note only one outcome is updated
@@ -404,6 +447,7 @@ void BVS_gaussian::sampleGammaProposalRatio(
     proposedBeta.elem(1 + arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
     proposedBetaPrior = gibbs_beta_gaussian(
                             proposedBeta,
+                            proposedGamma,
                             tau0Sq,
                             tauSq[0],
                             sigmaSq,
@@ -533,6 +577,7 @@ arma::vec BVS_gaussian::randVecNormal(
 
 double BVS_gaussian::gibbs_beta_gaussian(
     arma::mat& betas,
+    const arma::umat& gammas,
     double tau0Sq,
     double tauSq,
     double sigmaSq,
@@ -541,12 +586,13 @@ double BVS_gaussian::gibbs_beta_gaussian(
 {
     unsigned int N = dataclass.X.n_rows;
 
-    arma::uvec VS_idx = arma::find(betas);
-    // arma::uvec VS_idx = arma::find(gammas);
-    arma::uvec VS_idx0 = VS_idx;
-    VS_idx0.shed_row(0);
-    VS_idx0 -= 1;
-    arma::mat X_mask = arma::join_rows(arma::ones<arma::vec>(N), dataclass.X.cols(VS_idx0));
+    arma::uvec VS_idx = arma::find(gammas);
+    arma::mat X_mask = arma::join_rows(arma::ones<arma::vec>(N), dataclass.X.cols(VS_idx));
+    
+    arma::uvec interceptIdx = {0};
+    VS_idx.insert_rows(0, interceptIdx);
+    VS_idx += 1;
+    VS_idx[0] = 0;
 
     // arma::vec diag_elements = arma::join_rows({tau0Sq}, 1./tauSq * arma::eye<arma::mat>(VS_idx.n_elem,VS_idx.n_elem));
     // arma::vec diag_elements = { tau0Sq };

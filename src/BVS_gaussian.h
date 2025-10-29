@@ -100,6 +100,7 @@ private:
 
     static double gibbs_beta_gaussian(
         arma::mat& betas,
+        const arma::umat& gammas,
         double tau0Sq,
         double tauSq,
         double sigmaSq,

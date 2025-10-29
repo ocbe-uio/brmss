@@ -197,10 +197,18 @@ Rcpp::List run_mcmc(
     // Gamma Sampler
     Gamma_Sampler_Type gammaSampler;
     if ( gamma_sampler == "bandit" )
+    {
         gammaSampler = Gamma_Sampler_Type::bandit;
+    }
     else if ( gamma_sampler == "mc3" )
+    {
         gammaSampler = Gamma_Sampler_Type::mc3 ;
-    else
+    } 
+    else if ( gamma_sampler == "gibbs" )
+    {
+        gammaSampler = Gamma_Sampler_Type::gibbs;
+    }
+    else 
     {
         Rprintf("ERROR: Wrong type of Gamma Sampler given!");
         return 1;
