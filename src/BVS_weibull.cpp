@@ -41,7 +41,7 @@ void BVS_weibull::mcmc(
     gamma_acc_count = 0;
     double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
 
-    for(unsigned int j=0; j<p; ++j)
+    for(unsigned int j=1; j<p; ++j)
     {
         gammas(j) = R::rbinom(1, pi);
         logP_gamma(j) = BVS_subfunc::logPDFBernoulli(gammas(j), pi);
@@ -61,7 +61,7 @@ void BVS_weibull::mcmc(
     arma::vec lambdas; // Weibull's scale parameter
 
     arma::vec logMu = arma::zeros<arma::mat>(N, L);
-    logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
+    logMu = dataclass.X * betas;
 
     loglikelihood(
         betas,
@@ -92,7 +92,7 @@ void BVS_weibull::mcmc(
 
 
         tau0Sq = sampleTau0(hyperpar.tau0A, hyperpar.tau0B, betas[0]); // TODO: it seems not better if fixing tau0Sq=10
-        tauSq[0] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.rows(1,p));
+        tauSq[0] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.rows(1,p-1));
 
         // update Weibull's shape parameter kappa
         ARMS_Gibbs::slice_kappa(
@@ -160,7 +160,7 @@ void BVS_weibull::mcmc(
             dataclass
         );
 
-        logMu = betas(0) + dataclass.X * betas.rows(1, p);
+        logMu = dataclass.X * betas;
         // update \betas' variance tauSq
         // hyperpar.tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas);
         // tauSq_mcmc[1+m] = hyperpar.tauSq;
@@ -206,11 +206,7 @@ void BVS_weibull::loglikelihood(
     const DataClass &dataclass,
     arma::vec& loglik)
 {
-    // dimensions
-    unsigned int p = betas.n_rows - 1;
-
-    // arma::vec mu = arma::exp( betas(0) + dataclass.X * betas.submat(1, 0, p, 0) );
-    arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
+    arma::vec logMu = dataclass.X * betas;
     // logMu.elem(arma::find(logMu > upperbound)).fill(upperbound);
     arma::vec mu = arma::exp( logMu );
     arma::vec lambdas = mu / std::tgamma(1. + 1./kappa);
@@ -250,7 +246,7 @@ void BVS_weibull::sampleGamma(
     double logProposalRatio = 0;
 
     unsigned int N = dataclass.y.n_rows;
-    unsigned int p = gammas.n_rows;
+    unsigned int p = gammas.n_rows - 1;
     unsigned int L = gammas.n_cols;
 
     // define static variables for global updates for the use of bandit algorithm
@@ -290,10 +286,10 @@ void BVS_weibull::sampleGamma(
     // double pi = pi0;
     for(auto i: updateIdx)
     {
-        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(i,componentUpdateIdx)),
-                             hyperpar.piB + (double)(p) - (double)(proposedGamma(i,componentUpdateIdx)));
-        proposedGammaPrior(i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
@@ -345,8 +341,8 @@ void BVS_weibull::sampleGamma(
             // FINITE UPDATE
             if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
             {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(iter,componentUpdateIdx));
+                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
+                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
             }
 
         }
@@ -378,7 +374,7 @@ void BVS_weibull::sampleGammaProposalRatio(
     double logProposalRatio = 0;
 
     unsigned int N = dataclass.y.n_rows;
-    unsigned int p = gammas.n_rows;
+    unsigned int p = gammas.n_rows - 1;
     unsigned int L = gammas.n_cols;
 
     // define static variables for global updates for the use of bandit algorithm
@@ -418,10 +414,10 @@ void BVS_weibull::sampleGammaProposalRatio(
     // double pi = pi0;
     for(auto i: updateIdx)
     {
-        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(i,componentUpdateIdx)),
-                             hyperpar.piB + (double)(p) - (double)(proposedGamma(i,componentUpdateIdx)));
-        proposedGammaPrior(i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
@@ -493,8 +489,8 @@ void BVS_weibull::sampleGammaProposalRatio(
             // FINITE UPDATE
             if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
             {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(iter,componentUpdateIdx));
+                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
+                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
             }
 
         }
@@ -509,9 +505,7 @@ double BVS_weibull::logP_beta(
     double kappa,
     const DataClass& dataclass)
 {
-    unsigned int p = dataclass.X.n_cols;
-
-    arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, 0, p, 0);
+    arma::vec logMu = dataclass.X * betas;
 
     arma::vec lambdas = arma::exp(logMu) / std::tgamma(1. + 1./kappa);
 

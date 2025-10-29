@@ -23,12 +23,12 @@
 #' n <- 200 # subjects
 #' p <- 10 # variable selection predictors
 #'
-#' dat <- simData(n, p)
+#' dat <- simData(n, p, model = "weibull")
 #'
-#' # run a Bayesian brmss model: brmss-Ber2
+#' # run a Bayesian brmss model
 #' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
 #'
-#' plotMCMC(dat, datMCMC = fit, estimator = "xi")
+#' plotMCMC(dat, datMCMC = fit, estimator = "tau")
 #'
 #' @export
 plotMCMC <- function(dat, datMCMC, estimator = "tau") {
@@ -69,6 +69,7 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
 
   if ("gamma" %in% estimator) {
     bvs.mcmc <- eval(parse(text = paste0("datMCMC$output$", estimator, "s")))
+    bvs.mcmc <- bvs.mcmc[, -1]
     nIter <- nrow(bvs.mcmc)
     p <- NCOL(dat$x)
 

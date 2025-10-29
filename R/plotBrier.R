@@ -33,14 +33,12 @@
 #' n <- 200 # subjects
 #' p <- 10 # variable selection predictors
 #'
-#' dat <- simData(n, p)
+#' dat <- simData(n, p, model = "weibull")
 #'
-#' # run a Bayesian brmss model: brmss-Ber2
+#' # run a Bayesian brmss model
 #' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
 #'
-#' \donttest{
 #' plotBrier(dat, datMCMC = fit)
-#' }
 #'
 #' @export
 plotBrier <- function(dat, datMCMC,
@@ -72,7 +70,7 @@ plotBrier <- function(dat, datMCMC,
 
   # survival predictions based on posterior mean
   gammas.hat <- matrix(colMeans(datMCMC$output$gammas[-c(1:burnin), ]), ncol = L)
-  gammas.hat <- rbind(1, gammas.hat)
+  #gammas.hat <- rbind(1, gammas.hat)
   betas.hat <- matrix(colMeans(datMCMC$output$betas[-c(1:burnin), ]), ncol = L)
   betas.hat <- (gammas.hat >= 0.5) * betas.hat / gammas.hat
   betas.hat[is.na(betas.hat)] <- 0

@@ -36,7 +36,7 @@ Simulate survival data based on a Cox model
 set.seed(123)
 n <- 200 # subjects
 p <- 10 # variable selection predictors
-dat <- simData(n, p)
+dat <- simData(n, p, model = "weibull")
 str(dat)
 
 }

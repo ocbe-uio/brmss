@@ -42,7 +42,7 @@ void BVS_dirichlet::mcmc(
     {
         double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
 
-        for(unsigned int j=0; j<p; ++j)
+        for(unsigned int j=1; j<p; ++j)
         {
             gammas(j, l) = R::rbinom(1, pi);
             logP_gamma(j, l) = BVS_subfunc::logPDFBernoulli(gammas(j, l), pi);
@@ -61,7 +61,7 @@ void BVS_dirichlet::mcmc(
     arma::mat alphas = arma::zeros<arma::mat>(N, L);
     for(unsigned int l=0; l<L; ++l)
     {
-        alphas.col(l) = arma::exp( betas(0, l) + dataclass.X * betas.submat(1, l, p, l) );
+        alphas.col(l) = arma::exp( dataclass.X * betas.col(l) );
     }
     alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
     alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
@@ -143,10 +143,10 @@ void BVS_dirichlet::mcmc(
         // update quantities based on the new betas
         for(unsigned int l=0; l<L; ++l)
         {
-            arma::vec logMu = betas(0) + dataclass.X * betas.submat(1, l, p, l);
+            //arma::vec logMu = dataclass.X * betas.col(l);
 
             // update coefficient's variances
-            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p,l));
+            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
         }
         tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
 
@@ -190,7 +190,6 @@ void BVS_dirichlet::loglikelihood(
 {
     // dimensions
     unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
     arma::mat alphas = arma::zeros<arma::mat>(N, L);
@@ -201,7 +200,7 @@ void BVS_dirichlet::loglikelihood(
 
     for(unsigned int l=0; l<L; ++l)
     {
-        alphas.col(l) = arma::exp( betas(0, l) + dataclass.X * betas.submat(1, l, p, l) );
+        alphas.col(l) = arma::exp( dataclass.X * betas.col(l) );
     }
     alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
     alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
@@ -236,7 +235,7 @@ void BVS_dirichlet::sampleGamma(
     double logProposalRatio = 0;
 
     unsigned int N = dataclass.y.n_rows;
-    unsigned int p = gammas.n_rows;
+    unsigned int p = gammas.n_rows - 1;
     unsigned int L = gammas.n_cols;
 
     // define static variables for global updates for the use of bandit algorithm
@@ -272,14 +271,12 @@ void BVS_dirichlet::sampleGamma(
 
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
-    // TODO: check if pi0 is needed
-    // double pi = pi0;
     for(auto i: updateIdx)
     {
-        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(i,componentUpdateIdx)),
-                             hyperpar.piB + (double)(p) - (double)(proposedGamma(i,componentUpdateIdx)));
-        proposedGammaPrior(i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
@@ -332,8 +329,8 @@ void BVS_dirichlet::sampleGamma(
             // FINITE UPDATE
             if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
             {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(iter,componentUpdateIdx));
+                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
+                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
             }
 
         }
@@ -364,7 +361,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     double logProposalRatio = 0;
 
     unsigned int N = dataclass.y.n_rows;
-    unsigned int p = gammas.n_rows;
+    unsigned int p = gammas.n_rows - 1;
     unsigned int L = gammas.n_cols;
 
     // define static variables for global updates for the use of bandit algorithm
@@ -400,14 +397,12 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
-    // TODO: check if pi0 is needed
-    // double pi = pi0;
     for(auto i: updateIdx)
     {
-        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(i,componentUpdateIdx)),
-                             hyperpar.piB + (double)(p) - (double)(proposedGamma(i,componentUpdateIdx)));
-        proposedGammaPrior(i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
@@ -419,11 +414,13 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     std::string gammaProposal;
     if (gammaProposal == "simple")
     {
-        double TOOD = 0.; // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
+        // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
+        ::Rf_error("Not yet implemented!");
     }
     else
     {
-        double TOOD = 0.;
+        // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
+        ::Rf_error("Not yet implemented!");
     }
 
     double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
@@ -465,8 +462,8 @@ void BVS_dirichlet::sampleGammaProposalRatio(
             // FINITE UPDATE
             if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
             {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(iter,componentUpdateIdx));
+                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
+                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
             }
 
         }

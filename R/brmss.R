@@ -61,9 +61,9 @@
 #' n <- 200 # subjects
 #' p <- 10 # variable selection predictors
 #'
-#' dat <- simData(n, p)
+#' dat <- simData(n, p, model = "weibull")
 #'
-#' # run a Bayesian brmss model: brmss-Ber2
+#' # run a Bayesian brmss model
 #' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
 #'
 #' @export
@@ -75,7 +75,7 @@ brmss <- function(y, x,
                   tick = 100,
                   hyperpar = NULL,
                   threads = 1,
-                  gammaSampler = "mc3",
+                  gammaSampler = "bandit",
                   gammaProposal = "simple",
                   gammaGibbs = "none",
                   initial = NULL,
@@ -173,7 +173,7 @@ brmss <- function(y, x,
     initList$kappa <- 0.9
     initList$betas <- matrix(0, nrow = NCOL(x) + 1, ncol = L) 
     initList$betas[1] <- 0.1 # initial intercept 0.1
-    initList$gammas <- initList$betas[-1, ]
+    initList$gammas <- matrix(0, nrow = NCOL(x) + 1, ncol = L) 
   }
 
   if (!"bound.pos" %in% names(hyperpar)) {

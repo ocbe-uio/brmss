@@ -20,14 +20,14 @@ double EvalFunction::log_dens_betas_dirichlet(
     arma::mat X(const_cast<double*>(mydata_parm->X), mydata_parm->N, mydata_parm->p, false);
     arma::mat y(const_cast<double*>(mydata_parm->y), mydata_parm->N, mydata_parm->L, false);
 
-    arma::mat pars(mydata_parm->currentPars, mydata_parm->p+1, mydata_parm->L, false);
+    arma::mat pars(mydata_parm->currentPars, mydata_parm->p, mydata_parm->L, false);
     pars(mydata_parm->jj, mydata_parm->l) = par;
 
     arma::mat alphas = arma::zeros<arma::mat>(mydata_parm->N, mydata_parm->L);
 
     for(unsigned int ll=0; ll<(mydata_parm->L); ++ll)
     {
-        alphas.col(ll) = arma::exp( pars(0, ll) + X * pars.submat(1, ll, mydata_parm->p, ll) );
+        alphas.col(ll) = arma::exp( X * pars.col(ll) );
     }
     alphas.elem(arma::find(alphas > upperbound3)).fill(upperbound3);
     alphas.elem(arma::find(alphas < lowerbound)).fill(lowerbound);
@@ -61,10 +61,10 @@ double EvalFunction::log_dens_betas_weibull(
     arma::mat y(const_cast<double*>(mydata_parm->y), mydata_parm->N, 1, false);
     arma::mat X(const_cast<double*>(mydata_parm->X), mydata_parm->N, mydata_parm->p, false);
 
-    arma::mat pars(mydata_parm->currentPars, mydata_parm->p+1, 1, false);
+    arma::mat pars(mydata_parm->currentPars, mydata_parm->p, 1, false);
     pars(mydata_parm->jj) = par;
 
-    arma::vec logMu = pars(0) + X * pars.submat(1, 0, mydata_parm->p, 0);
+    arma::vec logMu = X * pars;
 
     arma::vec lambdas = arma::exp(logMu) / std::tgamma(1. + 1./mydata_parm->kappa);
 

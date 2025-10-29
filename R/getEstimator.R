@@ -24,9 +24,9 @@
 #' n <- 200 # subjects
 #' p <- 10 # variable selection predictors
 #'
-#' dat <- simData(n, p)
+#' dat <- simData(n, p, model = "weibull")
 #'
-#' # run a Bayesian brmss model: brmss-Ber2
+#' # run a Bayesian brmss model
 #' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
 #'
 #' gamma.hat <- getEstimator(fit, estimator = "gamma")
@@ -52,7 +52,7 @@ getEstimator <- function(object, estimator = "gamma", Pmax = 0,
   if (estimator %in% c("gamma", "beta")) {
     # estimate <- matrix(colMeans(object$output$gammas[-c(1:burnin), ]), ncol = L)
     estimate <- object$output$post$gammas
-    estimate <- rbind(1, estimate)
+    # estimate <- rbind(1, estimate)
     gammas <- estimate
     if (Pmax > 0) {
       estimate[estimate <= Pmax] <- 0

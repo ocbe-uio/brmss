@@ -84,12 +84,21 @@ Rcpp::List run_mcmc(
     }
 #endif
 // std::cout << "...debug1\n";
+
+    // force to estimate intercept for now
+    bool intercept = true;
+    if(intercept)
+    {
+        // X = arma::join_rows(arma::ones<arma::uvec>(y.n_cols), X);
+        X.insert_cols(0, arma::ones<arma::vec>(y.n_rows));
+    }
+
     // dimensions
     unsigned int N = X.n_rows;
     unsigned int p = X.n_cols;
     unsigned int L = y.n_cols;
 
-    if ( family == "weibull" )
+    if( family == "weibull" )
     {
         L = 1;
     }
@@ -122,7 +131,7 @@ Rcpp::List run_mcmc(
     unsigned int nIter_thin = nIter / thin;
 
     arma::mat betas = Rcpp::as<arma::mat>(initList["betas"]);
-    arma::mat beta_mcmc = arma::zeros<arma::mat>(1+nIter_thin, (p+1)*L);
+    arma::mat beta_mcmc = arma::zeros<arma::mat>(1+nIter_thin, p*L);
     beta_mcmc.row(0) = arma::vectorise(betas).t();
     // initializing posterior mean
     arma::mat beta_post = arma::zeros<arma::mat>(arma::size(betas));

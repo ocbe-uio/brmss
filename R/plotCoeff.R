@@ -35,9 +35,9 @@
 #' n <- 200 # subjects
 #' p <- 10 # variable selection predictors
 #'
-#' dat <- simData(n, p)
+#' dat <- simData(n, p, model = "weibull")
 #'
-#' # run a Bayesian brmss model: brmss-Ber2
+#' # run a Bayesian brmss model
 #' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
 #'
 #' plotCoeff(dat, datMCMC = fit, estimator = "beta")
@@ -139,12 +139,10 @@ plotCoeff <- function(dat,
   }
 
   if (estimator %in% c("gamma")) {
-    if (estimator == "gamma") {
-      bvs.mcmc <- datMCMC$output$gammas[-c(1:burnin), ]
-    } else {
-      bvs.mcmc <- datMCMC$output$etas[-c(1:burnin), ]
-    }
-    mPIP <- matrix(colMeans(bvs.mcmc), nrow = p, ncol = L)
+    bvs.mcmc <- datMCMC$output$gammas[-c(1:burnin), ]
+    
+    mPIP <- matrix(colMeans(bvs.mcmc), nrow = p + 1, ncol = L)
+    mPIP <- mPIP[-1, ]
     if (any(mPIP < 5e-3)) {
       mPIP[mPIP < 5e-3] <- 5e-3
     }

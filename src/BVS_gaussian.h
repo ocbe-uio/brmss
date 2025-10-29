@@ -52,7 +52,6 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        double& logP_beta,
         arma::vec& loglik,
 
         const hyperparClass& hyperpar,

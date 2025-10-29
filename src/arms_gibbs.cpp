@@ -32,7 +32,7 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
 
     dataS *mydata = (dataS *)malloc(sizeof (dataS));
 
-    gammas = arma::join_cols(arma::ones<arma::urowvec>(L), gammas);
+    // gammas = arma::join_cols(arma::ones<arma::urowvec>(L), gammas);
     currentPars.elem(arma::find(gammas == 0)).fill(0.);
     mydata->currentPars = currentPars.memptr();
     mydata->N = N;
@@ -47,7 +47,7 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
         // Gibbs sampling
         mydata->tauSq = tauSq[l];
 
-        for (unsigned int j = 0; j < p+1; ++j)
+        for (unsigned int j = 0; j < p; ++j)
         {
             if (gammas(j, l))
             {
@@ -118,7 +118,7 @@ void ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
 
     dataS *mydata = (dataS *)malloc(sizeof (dataS));
 
-    gammas = arma::join_cols(arma::ones<arma::urowvec>(L), gammas);
+    // gammas = arma::join_cols(arma::ones<arma::urowvec>(L), gammas);
     currentPars.elem(arma::find(gammas == 0)).fill(0.);
     mydata->currentPars = currentPars.memptr();
     mydata->N = N;
@@ -133,7 +133,7 @@ void ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
     unsigned int l = k;
     mydata->l = l;
 
-    for (unsigned int j = 0; j < p+1; ++j)
+    for (unsigned int j = 0; j < p; ++j)
     {
         if (gammas(j, l))
         {
@@ -202,7 +202,7 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
 
     dataS *mydata = (dataS *)malloc(sizeof (dataS));
 
-    gammas = arma::join_cols(arma::ones<arma::urowvec>(1), gammas);
+    // gammas = arma::join_cols(arma::ones<arma::urowvec>(1), gammas);
     currentPars.elem(arma::find(gammas == 0)).fill(0.);
     mydata->currentPars = currentPars.memptr();
     mydata->p = p;
@@ -217,7 +217,7 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
 
     // Gibbs sampling
 
-    for (unsigned int j = 0; j < p+1; ++j)
+    for (unsigned int j = 0; j < p; ++j)
     {
         if (gammas(j))
         {

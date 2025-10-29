@@ -10,14 +10,14 @@ double BVS_subfunc::gammaMC3Proposal(
     unsigned int componentUpdateIdx )
 {
     //arma::umat mutantGamma = gammas;
-    unsigned int n_updates_MC3 = std::max(5., std::ceil( (double)(p) / 5. )); //arbitrary number, should I use something different?
+    unsigned int n_updates_MC3 = std::max(5., std::ceil( (double)(p) / 5. )); //arbitrary number
 
-    Rcpp::IntegerVector entireIdx = Rcpp::seq( 0, p - 1);
+    Rcpp::IntegerVector entireIdx = Rcpp::seq(0, p);
     updateIdx = Rcpp::as<arma::uvec>(Rcpp::sample(entireIdx, n_updates_MC3, false)); // here 'replace = false'
 
     for( auto i : updateIdx)
     {
-        mutantGamma(i,componentUpdateIdx) = ( R::runif(0,1) < 0.5 )? gammas(i,componentUpdateIdx) : 1-gammas(i,componentUpdateIdx); // could simply be ( 0.5 ? 1 : 0) ;
+        mutantGamma(1+i,componentUpdateIdx) = ( R::runif(0,1) < 0.5 )? gammas(1+i,componentUpdateIdx) : 1-gammas(1+i,componentUpdateIdx); // could simply be ( 0.5 ? 1 : 0) ;
     }
 
     //return mutantGamma ;
@@ -51,7 +51,7 @@ double BVS_subfunc::gammaBanditProposal(
         banditZeta(j) = R::rbeta(banditAlpha(j,componentUpdateIdx),banditAlpha(j,componentUpdateIdx));
 
         // Create mismatch (only for relevant outcome)
-        mismatch(j) = (mutantGamma(j,componentUpdateIdx)==0)?(banditZeta(j)):(1.-banditZeta(j));   //mismatch
+        mismatch(j) = (mutantGamma(1+j,componentUpdateIdx)==0)?(banditZeta(j)):(1.-banditZeta(j));   //mismatch
     }
 
     // normalised_mismatch = mismatch / arma::as_scalar(arma::sum(mismatch));
@@ -65,7 +65,7 @@ double BVS_subfunc::gammaBanditProposal(
         updateIdx(0) = randWeightedIndexSampleWithoutReplacement(normalised_mismatch); // sample the one
 
         // Update
-        mutantGamma(updateIdx(0),componentUpdateIdx) = 1 - gammas(updateIdx(0),componentUpdateIdx); // deterministic, just switch
+        mutantGamma(1+updateIdx(0),componentUpdateIdx) = 1 - gammas(1+updateIdx(0),componentUpdateIdx); // deterministic, just switch
 
         // Compute logProposalRatio probabilities
         normalised_mismatch_backwards = mismatch;
@@ -90,12 +90,12 @@ double BVS_subfunc::gammaBanditProposal(
         {
             // mutantGamma(updateIdx(i),componentUpdateIdx) = static_cast<unsigned int>(R::rbinom( 1, banditZeta(updateIdx(i)))); // random update
             unsigned int j = R::rbinom( 1, banditZeta(updateIdx(i))); // random update
-            mutantGamma(updateIdx(i),componentUpdateIdx) = j;
+            mutantGamma(1+updateIdx(i),componentUpdateIdx) = j;
 
             normalised_mismatch_backwards(updateIdx(i)) = 1.- normalised_mismatch_backwards(updateIdx(i));
 
-            logProposalRatio += logPDFBernoulli(gammas(updateIdx(i),componentUpdateIdx),banditZeta(updateIdx(i))) -
-                                logPDFBernoulli(mutantGamma(updateIdx(i),componentUpdateIdx),banditZeta(updateIdx(i)));
+            logProposalRatio += logPDFBernoulli(gammas(1+updateIdx(i),componentUpdateIdx),banditZeta(updateIdx(i))) -
+                                logPDFBernoulli(mutantGamma(1+updateIdx(i),componentUpdateIdx),banditZeta(updateIdx(i)));
         }
 
         // Compute logProposalRatio probabilities
