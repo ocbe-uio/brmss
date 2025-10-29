@@ -280,6 +280,7 @@ void BVS_dirichlet::sampleGamma(
     }
 
     arma::mat proposedBeta = betas;
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
@@ -406,7 +407,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // +1 due
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
 
     ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
         componentUpdateIdx,

@@ -293,6 +293,7 @@ void BVS_weibull::sampleGamma(
     }
 
     arma::mat proposedBeta = betas;
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,
@@ -419,7 +420,7 @@ void BVS_weibull::sampleGammaProposalRatio(
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // +1 due
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,

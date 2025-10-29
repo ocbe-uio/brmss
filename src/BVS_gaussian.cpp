@@ -315,9 +315,8 @@ void BVS_gaussian::sampleGamma(
     }
 
     arma::mat proposedBeta = betas;
-
-    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    
     (void)gibbs_beta_gaussian(
         proposedBeta,
         proposedGamma,
@@ -445,8 +444,8 @@ void BVS_gaussian::sampleGammaProposalRatio(
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
     // double logPosteriorBeta = 0.;
     double proposedBetaPrior = 0.;
-
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+    
     // // Note that intercept is updated here
     proposedBetaPrior = gibbs_beta_gaussian(
                             proposedBeta,
