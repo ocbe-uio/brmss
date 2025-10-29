@@ -21,6 +21,7 @@ public:
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
+        Gamma_Gibbs_Type gammaGibbs,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 

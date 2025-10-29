@@ -16,6 +16,7 @@ brmss(
   threads = 1,
   gammaSampler = "mc3",
   gammaProposal = "simple",
+  gammaGibbs = "none",
   initial = NULL,
   arms.list = NULL
 )
@@ -45,6 +46,14 @@ parameters every tick-th iteration. Default is 1}
 \item{gammaSampler}{one of \code{c("mc3", "bandit")}}
 
 \item{gammaProposal}{one of \code{c("simple", "posterior")}}
+
+\item{gammaGibbs}{one of \code{c("none", "independent", "gprior")}. If 
+\code{gammaGibbs = "independent"}, it implements the approach in 
+Kuo and Mallick (1998) with gibbs sampling for gammas and with 
+independent spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, 
+it implements the approach in George and McCulloch (1997) with gibbs sampling 
+for gammas and with g-prior for betas
+independent spike-and-slab priors for betas.}
 
 \item{initial}{a list of initial values for parameters "kappa" and "betas"}
 

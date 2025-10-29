@@ -31,6 +31,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //' parameters every tick-th iteration. Default is 1
 //' @param gamma_sampler M-H sampler with "mc" or multi-armed "bandit" proposal for gammas
 //' @param gammaProposal one of 'c("simple", "posterior")'
+//' @param gamma_gibbs one of 'c("none", "independent", "gprior")'
 //' @param threads number of threads used for parallelization. Default is 1
 //' @param n number of samples to draw
 //' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -53,6 +54,7 @@ Rcpp::List run_mcmc(
     unsigned int tick,
     const std::string& gamma_sampler,
     const std::string& gammaProposal,
+    const std::string& gamma_gibbs,
     int threads,
 
     unsigned int n,
@@ -203,14 +205,30 @@ Rcpp::List run_mcmc(
     else if ( gamma_sampler == "mc3" )
     {
         gammaSampler = Gamma_Sampler_Type::mc3 ;
-    } 
-    else if ( gamma_sampler == "gibbs" )
-    {
-        gammaSampler = Gamma_Sampler_Type::gibbs;
     }
-    else 
+    else
     {
-        Rprintf("ERROR: Wrong type of Gamma Sampler given!");
+        Rprintf("ERROR: Wrong type of gamma_sampler given!");
+        return 1;
+    }
+
+    // Gamma Gibbs Sampler for GLM
+    Gamma_Gibbs_Type gammaGibbs;
+    if ( gamma_gibbs == "none" )
+    {
+        gammaGibbs = Gamma_Gibbs_Type::none;
+    }
+    else if ( gamma_gibbs == "independent" )
+    {
+        gammaGibbs = Gamma_Gibbs_Type::independent;
+    }
+    else if ( gamma_gibbs == "gprior" )
+    {
+        gammaGibbs = Gamma_Gibbs_Type::gprior ;
+    }
+    else
+    {
+        Rprintf("ERROR: Wrong type of gamma_gibbs given!");
         return 1;
     }
 
@@ -245,6 +263,7 @@ Rcpp::List run_mcmc(
             gammas,
             gammaProposal,
             gammaSampler,
+            gammaGibbs,
             hyperpar,
             dataclass,
 

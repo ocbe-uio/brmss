@@ -21,6 +21,13 @@
 #' @param threads number of threads used for parallelization. Default is 1
 #' @param gammaSampler one of \code{c("mc3", "bandit")}
 #' @param gammaProposal one of \code{c("simple", "posterior")}
+#' @param gammaGibbs one of \code{c("none", "independent", "gprior")}. If 
+#' \code{gammaGibbs = "independent"}, it implements the approach in 
+#' Kuo and Mallick (1998) with gibbs sampling for gammas and with 
+#' independent spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, 
+#' it implements the approach in George and McCulloch (1997) with gibbs sampling 
+#' for gammas and with g-prior for betas
+#' independent spike-and-slab priors for betas.
 #' @param initial a list of initial values for parameters "kappa" and "betas"
 #' @param arms.list a list of parameters for the ARMS algorithm
 #'
@@ -70,6 +77,7 @@ brmss <- function(y, x,
                   threads = 1,
                   gammaSampler = "mc3",
                   gammaProposal = "simple",
+                  gammaGibbs = "none",
                   initial = NULL,
                   arms.list = NULL) {
   # Validation
@@ -110,8 +118,13 @@ brmss <- function(y, x,
   cl <- match.call()
 
   gammaSampler <- tolower(gammaSampler)
-  if (!gammaSampler %in% c("mc3", "bandit")) {
-    stop('Argument "gammaSampler" must be one of c("mc3", "bandit")!')
+  if (!gammaSampler %in% c("mc3", "bandit", "gibbs")) {
+    stop('Argument "gammaSampler" must be one of c("mc3", "bandit", "gibbs")!')
+  }
+  
+  gammaGibbs <- tolower(gammaGibbs)
+  if (!gammaGibbs %in% c("none", "independent", "gprior")) {
+    stop('Argument "gammaGibbs" must be one of c("none", "independent", "gprior")!')
   }
 
   # set hyperparamters of all piors
@@ -205,6 +218,7 @@ brmss <- function(y, x,
     tick,
     gammaSampler,
     gammaProposal,
+    gammaGibbs,
     threads,
     arms.list$n, # n: number of samples to draw, now only 1
     arms.list$nsamp, # nsamp: number of MCMC for generating each ARMS sample, only keeping the last one

@@ -15,6 +15,7 @@ void BVS_gaussian::mcmc(
     arma::umat& gammas,
     const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
+    Gamma_Gibbs_Type gammaGibbs,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
 
@@ -90,8 +91,10 @@ void BVS_gaussian::mcmc(
                   );
 
         // update \gammas -- variable selection indicators
-        if (gammaSampler != Gamma_Sampler_Type::gibbs) 
+        switch( gammaGibbs )
         {
+        case Gamma_Gibbs_Type::none :
+
             if (gammaProposal == "simple")
             {
                 sampleGamma(
@@ -128,16 +131,19 @@ void BVS_gaussian::mcmc(
                     dataclass
                 );
             }
-        } 
-        else
+            break;
+
+        case Gamma_Gibbs_Type::independent :
         {
+
             // Gibbs sampling for gammas as Kuo & Mallick (1998, Sankhyā)
+            // betas have independent spike-and-slab priors
 
             int n_updates = std::min(10., std::ceil( (double)p ));
             Rcpp::IntegerVector entireIdx = Rcpp::seq( 0, p - 1);
             // random order of indexes for better mixing
             arma::uvec updateIdx = Rcpp::as<arma::uvec>(Rcpp::sample(entireIdx, n_updates, false)); // here 'replace = false'
-            
+
             double pi = 0.5;
             for (auto j : updateIdx)
             {
@@ -147,16 +153,27 @@ void BVS_gaussian::mcmc(
                 thetaStar(j) = betas(j);
                 thetaStarStar(j) = 0.;
 
-                double quad = arma::as_scalar((dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)).t() * 
-                    (dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)));
+                double quad = arma::as_scalar((dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)).t() *
+                                              (dataclass.y - thetaStar(0) - dataclass.X * thetaStar.rows(1,p)));
                 double c_j = pi * std::exp(-0.5/sigmaSq * quad);
-                quad = arma::as_scalar((dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)).t() * 
-                    (dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)));
+                quad = arma::as_scalar((dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)).t() *
+                                       (dataclass.y - thetaStarStar(0) - dataclass.X * thetaStarStar.rows(1,p)));
                 double d_j = (1.-pi) * std::exp(-0.5/sigmaSq * quad);
 
                 double pTilde = c_j/(c_j+d_j);
                 gammas(j) = R::rbinom(1, pTilde);
             }
+            break;
+        }
+        case Gamma_Gibbs_Type::gprior :
+
+            // Gibbs sampling for gammas as George & McCulloch (1997, Statistica Sinica)
+            // TODO: betas have g-prior
+            // TODO: remember to change 'gibbs_beta_gaussian()' with g-prior variance matrix for betas
+
+            ::Rf_error("GLM with g-prior has not yet been implemented!");
+            break;
+
         }
 
         // update \betas
@@ -166,13 +183,13 @@ void BVS_gaussian::mcmc(
 
         // (void)gibbs_beta_gaussian(
         logP_beta = gibbs_beta_gaussian(
-                       betas,
-                       gammas,
-                       tau0Sq,
-                       tauSq[0],
-                       sigmaSq,
-                       dataclass
-                   );
+                        betas,
+                        gammas,
+                        tau0Sq,
+                        tauSq[0],
+                        sigmaSq,
+                        dataclass
+                    );
 
         mu = betas(0) + dataclass.X * betas.rows(1, p);
 
@@ -279,11 +296,6 @@ void BVS_gaussian::sampleGamma(
 
     case Gamma_Sampler_Type::mc3:
         logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
-        break;
-
-    case Gamma_Sampler_Type::gibbs:
-        // Impossible in this case!
-        ::Rf_error("Something going wrong in file 'src/BVS_gaussian.cpp'!");
         break;
     }
 
@@ -412,11 +424,6 @@ void BVS_gaussian::sampleGammaProposalRatio(
 
     case Gamma_Sampler_Type::mc3:
         logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
-        break;
-
-    case Gamma_Sampler_Type::gibbs:
-        // Impossible in this case!
-        ::Rf_error("Something going wrong in file 'src/BVS_gaussian.cpp'!");
         break;
     }
 
@@ -588,7 +595,7 @@ double BVS_gaussian::gibbs_beta_gaussian(
 
     arma::uvec VS_idx = arma::find(gammas);
     arma::mat X_mask = arma::join_rows(arma::ones<arma::vec>(N), dataclass.X.cols(VS_idx));
-    
+
     arma::uvec interceptIdx = {0};
     VS_idx.insert_rows(0, interceptIdx);
     VS_idx += 1;
