@@ -13,7 +13,7 @@ void BVS_dirichlet::mcmc(
     arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
-    const std::string& gamma_proposal,
+    const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
     const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
@@ -91,7 +91,7 @@ void BVS_dirichlet::mcmc(
         // weibullS = arma::exp(- arma::pow( y/lambdas, kappa));
 
         // update \gammas -- variable selection indicators
-        if (gamma_proposal == "simple")
+        if (gammaProposal == "simple")
         {
             sampleGamma(
                 gammas,
@@ -131,8 +131,8 @@ void BVS_dirichlet::mcmc(
             hyperpar,
             betas,
             gammas,
-            tauSq,
             tau0Sq,
+            tauSq,
             dataclass
         );
         // std::cout << "...debug18\n";
@@ -148,7 +148,7 @@ void BVS_dirichlet::mcmc(
             // update coefficient's variances
             tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p,l));
         }
-        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t()); 
+        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
 
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -282,18 +282,18 @@ void BVS_dirichlet::sampleGamma(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
     ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
         componentUpdateIdx,
         armsPar,
         hyperpar,
-        betas_proposal,
+        proposedBeta,
         proposedGamma,
-        tauSq[componentUpdateIdx], // here fixed tauSq
         tau0Sq, // here fixed tau0Sq
+        tauSq[componentUpdateIdx], // here fixed tauSq
         dataclass
     );
 
@@ -301,7 +301,7 @@ void BVS_dirichlet::sampleGamma(
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, dataclass, loglik );
-    loglikelihood( betas_proposal, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -315,7 +315,7 @@ void BVS_dirichlet::sampleGamma(
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }
@@ -410,14 +410,14 @@ void BVS_dirichlet::sampleGammaProposalRatio(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
     double logPosteriorBeta = 0.;
     double logPosteriorBeta_proposal = 0.;
 
-    std::string gamma_proposal;
-    if (gamma_proposal == "simple")
+    std::string gammaProposal;
+    if (gammaProposal == "simple")
     {
         double TOOD = 0.; // TODO: not yet implement the calculations of 'logPosteriorBeta' and 'logPosteriorBeta_proposal'
     }
@@ -426,14 +426,14 @@ void BVS_dirichlet::sampleGammaProposalRatio(
         double TOOD = 0.;
     }
 
-    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(betas_proposal, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
+    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
     double logProposalBetaRatio = logPosteriorBeta - logPosteriorBeta_proposal;
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, dataclass, loglik );
-    loglikelihood( betas_proposal, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -448,7 +448,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }

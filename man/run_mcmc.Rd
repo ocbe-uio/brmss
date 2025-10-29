@@ -13,7 +13,7 @@ run_mcmc(
   thin,
   tick,
   gamma_sampler,
-  gamma_proposal,
+  gammaProposal,
   threads,
   n,
   nsamp,
@@ -43,7 +43,7 @@ parameters every tick-th iteration. Default is 1}
 
 \item{gamma_sampler}{M-H sampler with "mc" or multi-armed "bandit" proposal for gammas}
 
-\item{gamma_proposal}{one of 'c("simple", "posterior")'}
+\item{gammaProposal}{one of 'c("simple", "posterior")'}
 
 \item{threads}{number of threads used for parallelization. Default is 1}
 

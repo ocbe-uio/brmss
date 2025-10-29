@@ -19,8 +19,8 @@ public:
         const hyperparClass& hyperpar,
         arma::mat& currentPars,
         arma::umat gammas,
-        arma::vec& tauSq,
         double tau0Sq,
+        arma::vec& tauSq,
         const DataClass &dataclass
     );
 
@@ -30,8 +30,8 @@ public:
         const hyperparClass& hyperpar,
         arma::mat& currentPars,
         arma::umat gammas,
-        double tauSqK,
         double tau0Sq,
+        double tauSqK,
         const DataClass &dataclass
     );
 
@@ -40,8 +40,8 @@ public:
         const hyperparClass& hyperpar,
         arma::mat& currentPars,
         arma::umat gammas,
-        double tauSq,
         double tau0Sq,
+        double tauSq,
 
         double kappa,
         const DataClass &dataclass

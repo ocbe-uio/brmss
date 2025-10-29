@@ -14,7 +14,7 @@
 #' @param tick an integer used for printing the iteration index and some updated
 #' parameters every tick-th iteration. Default is 1
 #' @param gamma_sampler M-H sampler with "mc" or multi-armed "bandit" proposal for gammas
-#' @param gamma_proposal one of 'c("simple", "posterior")'
+#' @param gammaProposal one of 'c("simple", "posterior")'
 #' @param threads number of threads used for parallelization. Default is 1
 #' @param n number of samples to draw
 #' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -25,7 +25,7 @@
 #' @param rangeList a list of ranges of initial values for parameters "kappa", "betas"
 #' @param hyperparList a list of relevant hyperparameters
 #'
-run_mcmc <- function(y, X, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList) {
-    .Call(`_brmss_run_mcmc`, y, X, family, nIter, burnin, thin, tick, gamma_sampler, gamma_proposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList)
+run_mcmc <- function(y, X, family, nIter, burnin, thin, tick, gamma_sampler, gammaProposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList) {
+    .Call(`_brmss_run_mcmc`, y, X, family, nIter, burnin, thin, tick, gamma_sampler, gammaProposal, threads, n, nsamp, ninit, convex, npoint, initList, rangeList, hyperparList)
 }
 

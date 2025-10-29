@@ -18,7 +18,7 @@ public:
         arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
-        const std::string& gamma_proposal,
+        const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
         const armsParmClass& armsPar,
         const hyperparClass& hyperpar,

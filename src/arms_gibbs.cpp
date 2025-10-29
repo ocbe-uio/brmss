@@ -8,8 +8,8 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
     const hyperparClass& hyperpar,
     arma::mat& currentPars,
     arma::umat gammas,
-    arma::vec& tauSq,
     double tau0Sq,
+    arma::vec& tauSq,
     const DataClass &dataclass
 )
 {
@@ -39,7 +39,7 @@ void ARMS_Gibbs::arms_gibbs_beta_dirichlet(
     mydata->p = p;
     mydata->L = L;
     mydata->X = dataclass.X.memptr();
-    mydata->y = dataclass.y.memptr();        
+    mydata->y = dataclass.y.memptr();
     mydata->tau0Sq = tau0Sq;
 
     for (unsigned int l = 0; l < L; ++l)
@@ -94,8 +94,8 @@ void ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
     const hyperparClass& hyperpar,
     arma::mat& currentPars,
     arma::umat gammas,
-    double tauSqK,
     double tau0Sq,
+    double tauSqK,
     const DataClass &dataclass
 )
 {
@@ -176,8 +176,8 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
     const hyperparClass& hyperpar,
     arma::mat& currentPars,
     arma::umat gammas,
-    double tauSq,
     double tau0Sq,
+    double tauSq,
 
     double kappa,
     const DataClass &dataclass

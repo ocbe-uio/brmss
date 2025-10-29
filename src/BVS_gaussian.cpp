@@ -13,7 +13,7 @@ void BVS_gaussian::mcmc(
     arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
-    const std::string& gamma_proposal,
+    const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
@@ -44,7 +44,7 @@ void BVS_gaussian::mcmc(
         gammas(j) = R::rbinom(1, pi);
         logP_gamma(j) = BVS_subfunc::logPDFBernoulli(gammas(j), pi);
     }
-    double logPbeta = 0.;
+    double logP_beta = 0.;
 
     // mean parameter
     arma::mat mu = betas(0) + dataclass.X * betas.rows(1, p);
@@ -90,14 +90,14 @@ void BVS_gaussian::mcmc(
                   );
 
         // update \gammas -- variable selection indicators
-        if (gamma_proposal == "simple")
+        if (gammaProposal == "simple")
         {
             sampleGamma(
                 gammas,
                 gammaSampler,
                 logP_gamma,
                 gamma_acc_count,
-                logPbeta,
+                logP_beta,
                 loglik,
                 hyperpar,
                 betas,
@@ -115,7 +115,7 @@ void BVS_gaussian::mcmc(
                 gammaSampler,
                 logP_gamma,
                 gamma_acc_count,
-                logPbeta,
+                logP_beta,
                 loglik,
                 hyperpar,
                 betas,
@@ -134,7 +134,7 @@ void BVS_gaussian::mcmc(
         betas.elem(1 + arma::find(gammas == 0)).fill(0.); // +1 due to intercept in betas
 
         // (void)gibbs_beta_gaussian(
-        logPbeta = gibbs_beta_gaussian(
+        logP_beta = gibbs_beta_gaussian(
                        betas,
                        tau0Sq,
                        tauSq[0],
@@ -203,7 +203,7 @@ void BVS_gaussian::sampleGamma(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    double& logPbeta,
+    double& logP_beta,
     arma::vec& loglik,
     const hyperparClass& hyperpar,
 
@@ -268,13 +268,13 @@ void BVS_gaussian::sampleGamma(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
-    betas_proposal.elem(1 + arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    proposedBeta.elem(1 + arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
     // (void)gibbs_beta_gaussian()
-    double logPbeta_proposal = gibbs_beta_gaussian(
-                                   betas_proposal,
+    double proposedBetaPrior = gibbs_beta_gaussian(
+                                   proposedBeta,
                                    tau0Sq,
                                    tauSq[0],
                                    sigmaSq,
@@ -284,7 +284,7 @@ void BVS_gaussian::sampleGamma(
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, sigmaSq, dataclass, loglik );
-    loglikelihood( betas_proposal, sigmaSq, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, sigmaSq, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -297,9 +297,9 @@ void BVS_gaussian::sampleGamma(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        logPbeta = logPbeta_proposal;
+        logP_beta = proposedBetaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }
@@ -331,7 +331,7 @@ void BVS_gaussian::sampleGammaProposalRatio(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    double& logPbeta,
+    double& logP_beta,
     arma::vec& loglik,
     const hyperparClass& hyperpar,
 
@@ -395,22 +395,22 @@ void BVS_gaussian::sampleGammaProposalRatio(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
     // double logPosteriorBeta = 0.;
-    double logPbeta_proposal = 0.;
+    double proposedBetaPrior = 0.;
 
-    betas_proposal.elem(1 + arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
-    logPbeta_proposal = gibbs_beta_gaussian(
-                            betas_proposal,
+    proposedBeta.elem(1 + arma::find(proposedGamma == 0)).fill(0.); // +1 due to intercept in betas
+    proposedBetaPrior = gibbs_beta_gaussian(
+                            proposedBeta,
                             tau0Sq,
                             tauSq[0],
                             sigmaSq,
                             dataclass
                         );
     /*
-    logPosteriorBeta = logPbeta(
+    logPosteriorBeta = logP_beta(
                            betas,
                            tau0Sq,
                            tauSq[0],
@@ -419,14 +419,14 @@ void BVS_gaussian::sampleGammaProposalRatio(
                        );
     */
 
-    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(betas_proposal, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
-    double logProposalBetaRatio = logPbeta - logPbeta_proposal;
+    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
+    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, sigmaSq, dataclass, loglik );
-    loglikelihood( betas_proposal, sigmaSq, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, sigmaSq, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -440,9 +440,9 @@ void BVS_gaussian::sampleGammaProposalRatio(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        logPbeta = logPbeta_proposal;
+        logP_beta = proposedBetaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }
@@ -573,7 +573,7 @@ double BVS_gaussian::gibbs_beta_gaussian(
 }
 
 /*
-double BVS_gaussian::logPbeta(
+double BVS_gaussian::logP_beta(
     const arma::mat& betas,
     double tau0Sq,
     double tauSq,

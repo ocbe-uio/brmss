@@ -14,7 +14,7 @@ void BVS_weibull::mcmc(
     arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
-    const std::string& gamma_proposal,
+    const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
     const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
@@ -110,7 +110,7 @@ void BVS_weibull::mcmc(
         // weibullS = arma::exp(- arma::pow( y/lambdas, kappa));
 
         // update \gammas -- variable selection indicators
-        if (gamma_proposal == "simple")
+        if (gammaProposal == "simple")
         {
             sampleGamma(
                 gammas,
@@ -153,8 +153,8 @@ void BVS_weibull::mcmc(
             hyperpar,
             betas,
             gammas,
-            tauSq[0],
             tau0Sq,
+            tauSq[0],
 
             kappa,
             dataclass
@@ -296,17 +296,17 @@ void BVS_weibull::sampleGamma(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,
         hyperpar,
-        betas_proposal,
+        proposedBeta,
         proposedGamma,
-        tauSq[0],
         tau0Sq,
+        tauSq[0],
         kappa,
         dataclass
     );
@@ -314,7 +314,7 @@ void BVS_weibull::sampleGamma(
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, kappa, dataclass, loglik );
-    loglikelihood( betas_proposal, kappa, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, kappa, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -328,7 +328,7 @@ void BVS_weibull::sampleGamma(
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }
@@ -424,16 +424,16 @@ void BVS_weibull::sampleGammaProposalRatio(
         logProposalGammaRatio +=  proposedGammaPrior(i, componentUpdateIdx) - logP_gamma(i, componentUpdateIdx);
     }
 
-    arma::mat betas_proposal = betas;
+    arma::mat proposedBeta = betas;
 
-    // update (addresses) 'betas_proposal' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
+    // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
     double logPosteriorBeta = 0.;
     double logPosteriorBeta_proposal = 0.;
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,
         hyperpar,
-        betas_proposal,
+        proposedBeta,
         proposedGamma,
         tauSq[0],
         tau0Sq,
@@ -441,27 +441,27 @@ void BVS_weibull::sampleGammaProposalRatio(
         dataclass
     );
 
-    logPosteriorBeta = logPbeta(
+    logPosteriorBeta = logP_beta(
                            betas,
                            tauSq[0],
                            kappa,
                            dataclass
                        );
-    logPosteriorBeta_proposal = logPbeta(
-                                    betas_proposal,
+    logPosteriorBeta_proposal = logP_beta(
+                                    proposedBeta,
                                     tauSq[0],
                                     kappa,
                                     dataclass
                                 );
 
-    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(betas_proposal, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
+    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
     double logProposalBetaRatio = logPosteriorBeta - logPosteriorBeta_proposal;
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
     loglikelihood( betas, kappa, dataclass, loglik );
-    loglikelihood( betas_proposal, kappa, dataclass, proposedLikelihood );
+    loglikelihood( proposedBeta, kappa, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
@@ -476,7 +476,7 @@ void BVS_weibull::sampleGammaProposalRatio(
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
         loglik = proposedLikelihood;
-        betas = betas_proposal;
+        betas = proposedBeta;
 
         ++gamma_acc_count;
     }
@@ -503,7 +503,7 @@ void BVS_weibull::sampleGammaProposalRatio(
 }
 
 
-double BVS_weibull::logPbeta(
+double BVS_weibull::logP_beta(
     const arma::mat& betas,
     double tauSq,
     double kappa,

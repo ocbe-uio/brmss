@@ -19,7 +19,7 @@ public:
         arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
-        const std::string& gamma_proposal,
+        const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
@@ -51,7 +51,7 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        double& logPbeta,
+        double& logP_beta,
         arma::vec& loglik,
 
         const hyperparClass& hyperpar,
@@ -69,7 +69,7 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        double& logPbeta,
+        double& logP_beta,
         arma::vec& loglik,
 
         const hyperparClass& hyperpar,
@@ -106,7 +106,7 @@ private:
         const DataClass& dataclass
     );
     /*
-    static double logPbeta(
+    static double logP_beta(
         const arma::mat& betas,
         double tau0Sq,
         double tauSq,

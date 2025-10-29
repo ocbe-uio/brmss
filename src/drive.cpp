@@ -30,7 +30,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //' @param tick an integer used for printing the iteration index and some updated
 //' parameters every tick-th iteration. Default is 1
 //' @param gamma_sampler M-H sampler with "mc" or multi-armed "bandit" proposal for gammas
-//' @param gamma_proposal one of 'c("simple", "posterior")'
+//' @param gammaProposal one of 'c("simple", "posterior")'
 //' @param threads number of threads used for parallelization. Default is 1
 //' @param n number of samples to draw
 //' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -52,7 +52,7 @@ Rcpp::List run_mcmc(
     unsigned int thin,
     unsigned int tick,
     const std::string& gamma_sampler,
-    const std::string& gamma_proposal,
+    const std::string& gammaProposal,
     int threads,
 
     unsigned int n,
@@ -146,6 +146,7 @@ Rcpp::List run_mcmc(
     arma::vec sigmaSq_mcmc;
     double sigmaSq_post;
 
+    arma::uvec event;
 
     // response family
     Family_Type familyType;
@@ -181,6 +182,9 @@ Rcpp::List run_mcmc(
         kappa_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
         kappa_mcmc[0] = kappa;
         kappa_post = kappa;
+
+        event = arma::conv_to<arma::uvec>::from( y.col(1) );
+        y.shed_col(1);
     }
     else if ( family == "dirichlet" )
         familyType = Family_Type::dirichlet ;
@@ -205,24 +209,11 @@ Rcpp::List run_mcmc(
     // mean parameter
     // arma::mat mu = arma::zeros<arma::mat>(N, L);
     // arma::vec mu;
-    // arma::vec logMu = arma::zeros<arma::mat>(N, L);
 
-    arma::uvec event;
-    arma::vec lambdas; // Weibull's scale parameter
-    if(family == "weibull")
-    {
-        event = arma::conv_to<arma::uvec>::from( y.col(1) );
-        y.shed_col(1);
-
-        // arma::vec logMu = arma::join_cols(arma::ones<arma::rowvec>(N), X) * betas.col(0);
-        // logMu = betas(0) + X * betas.submat(1, 0, p, 0);
-    }
-// std::cout << "...debug5\n";
     // input constant data sets in a class
     DataClass dataclass(X, y, event);
     X.clear();
     y.clear();
-    event.clear();
 
     arma::mat loglikelihood_mcmc = arma::zeros<arma::mat>(1+nIter_thin, N);
 // std::cout << "...debug6\n";
@@ -234,7 +225,7 @@ Rcpp::List run_mcmc(
     switch( familyType )
     {
 
-    case Family_Type::gaussian:
+    case Family_Type::gaussian :
         BVS_gaussian::mcmc(
             nIter,
             burnin,
@@ -244,7 +235,7 @@ Rcpp::List run_mcmc(
             tauSq,
             betas,
             gammas,
-            gamma_proposal,
+            gammaProposal,
             gammaSampler,
             hyperpar,
             dataclass,
@@ -261,23 +252,23 @@ Rcpp::List run_mcmc(
         );
         break;
 
-    case Family_Type::logit:
+    case Family_Type::logit :
         ::Rf_error("Not yet implemented!");
         break;
 
-    case Family_Type::probit:
+    case Family_Type::probit :
         ::Rf_error("Not yet implemented!");
         break;
 
-    case Family_Type::poisson:
+    case Family_Type::poisson :
         ::Rf_error("Not yet implemented!");
         break;
 
-    case Family_Type::beta:
+    case Family_Type::beta :
         ::Rf_error("Not yet implemented!");
         break;
 
-    case Family_Type::weibull:
+    case Family_Type::weibull :
         BVS_weibull::mcmc(
             nIter,
             burnin,
@@ -287,7 +278,7 @@ Rcpp::List run_mcmc(
             tauSq,
             betas,
             gammas,
-            gamma_proposal,
+            gammaProposal,
             gammaSampler,
             armsPar,
             hyperpar,
@@ -305,7 +296,7 @@ Rcpp::List run_mcmc(
         );
         break;
 
-    case Family_Type::dirichlet:
+    case Family_Type::dirichlet :
         BVS_dirichlet::mcmc(
             nIter,
             burnin,
@@ -314,7 +305,7 @@ Rcpp::List run_mcmc(
             tauSq,
             betas,
             gammas,
-            gamma_proposal,
+            gammaProposal,
             gammaSampler,
             armsPar,
             hyperpar,

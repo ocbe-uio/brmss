@@ -4,10 +4,11 @@
 
 * Make C++ classes 'BVS_weibull' and 'BVS_dirichlet' for every model's MCMC for-loop, likelihood, gammaSample, which makes the code more generalizable
 * Implement linear regression
+
+* TODO: try the gibbs sampler for gammas in linear regression, to see if it works
+
 * TODO: Check if better techniques instead of hard upper- or lower-bounds for exponential/log scales!
 * TODO: add a complete version of proposal ratio of M-H
-* TODO: change variable name 'proposedGamma' to 'gammas_proposal'
-* TODO: add linear regression
 * TODO: add Poisson regression
 * TODO: add probit regression
 * TODO: add logistic regression (think of Pólya-gamma augmentation)
