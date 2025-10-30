@@ -4,6 +4,7 @@
 #include "BVS_gaussian.h"
 #include "BVS_weibull.h"
 #include "BVS_dirichlet.h"
+#include "BVS_mvprobit.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -199,7 +200,13 @@ Rcpp::List run_mcmc(
         y.shed_col(1);
     }
     else if ( family == "dirichlet" )
+    {
         familyType = Family_Type::dirichlet ;
+    }
+    else if ( family == "mvprobit" )
+    {
+        familyType = Family_Type::mvprobit ;
+    }
     else
     {
         ::Rf_error("ERROR: Wrong type of family given!");
@@ -335,6 +342,32 @@ Rcpp::List run_mcmc(
 
     case Family_Type::dirichlet :
         BVS_dirichlet::mcmc(
+            nIter,
+            burnin,
+            thin,
+            tau0Sq,
+            tauSq,
+            betas,
+            gammas,
+            gammaProposal,
+            gammaSampler,
+            armsPar,
+            hyperpar,
+            dataclass,
+
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
+        );
+        break;
+
+    case Family_Type::mvprobit :
+        ::Rf_error("Not yet implemented!");
+        BVS_mvprobit::mcmc(
             nIter,
             burnin,
             thin,

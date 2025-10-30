@@ -43,10 +43,8 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
   }
 
   p.idx <- 1:((p + 1) * L)
-  p.DirFalse.idx <- 1:((p + 1) * (L - 1))
   if (p > 10) {
     p.idx <- rep(1:11, L) + (p + 1) * rep(0:(L - 1), each = 11)
-    p.DirFalse.idx <- rep(1:11, L - 1) + (p + 1) * rep(0:(L - 2), each = 11)
     p <- 10
   }
   if ("beta" %in% estimator) {
@@ -69,7 +67,8 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
 
   if ("gamma" %in% estimator) {
     bvs.mcmc <- eval(parse(text = paste0("datMCMC$output$", estimator, "s")))
-    bvs.mcmc <- bvs.mcmc[, -1]
+    #bvs.mcmc <- bvs.mcmc[, -1]
+    bvs.mcmc <- bvs.mcmc[, -seq(1, ((p + 1) * L), by = p + 1)]
     nIter <- nrow(bvs.mcmc)
     p <- NCOL(dat$x)
 

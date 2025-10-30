@@ -3,9 +3,9 @@
 #include "simple_gibbs.h"
 #include "arms_gibbs.h"
 #include "BVS_subfunc.h"
-#include "BVS_dirichlet.h"
+#include "BVS_mvprobit.h"
 
-void BVS_dirichlet::mcmc(
+void BVS_mvprobit::mcmc(
     unsigned int nIter,
     unsigned int burnin,
     unsigned int thin,
@@ -183,7 +183,7 @@ void BVS_dirichlet::mcmc(
 
 
 // individual loglikelihoods
-void BVS_dirichlet::loglikelihood(
+void BVS_mvprobit::loglikelihood(
     const arma::mat& betas,
     const DataClass &dataclass,
     arma::vec& loglik)
@@ -212,7 +212,7 @@ void BVS_dirichlet::loglikelihood(
 }
 
 
-void BVS_dirichlet::sampleGamma(
+void BVS_mvprobit::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
@@ -273,10 +273,8 @@ void BVS_dirichlet::sampleGamma(
 
     for(auto i: updateIdx)
     {
-        // double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-        //                         hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
-        double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                                hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
@@ -342,7 +340,7 @@ void BVS_dirichlet::sampleGamma(
     // return gammas;
 }
 
-void BVS_dirichlet::sampleGammaProposalRatio(
+void BVS_mvprobit::sampleGammaProposalRatio(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
@@ -374,8 +372,10 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     // decide on one component
     unsigned int componentUpdateIdx = 0;
-    // if (L > 1) 
+    if (L > 1)
+    {
         componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
+    }
     arma::uvec singleIdx_k = { componentUpdateIdx };
 
     // Update the proposed Gamma with 'updateIdx' renewed via its address
@@ -400,10 +400,8 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     for(auto i: updateIdx)
     {
-        // double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-        //                         hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
-        double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                                hyperpar.piB + (double)p - (double)(arma::sum(gammas.row(1+i))));
+        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
@@ -489,7 +487,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
     // return gammas;
 }
 
-double BVS_dirichlet::logPBeta(
+double BVS_mvprobit::logPBeta(
     const arma::mat& betas,
     const arma::vec& tauSq,
     const DataClass& dataclass

@@ -83,7 +83,11 @@ brmss <- function(y, x,
   # Validation
   stopifnot(burnin < nIter)
   stopifnot(burnin >= 0)
-
+  
+  if (!family %in% c("gaussian", "weibull", "dirichlet", "mvprobit")) {
+    stop('Argument "family" is not valid!')
+  }
+  
   if (!is.matrix(y)) {
     y <- as.matrix(y)
   }
