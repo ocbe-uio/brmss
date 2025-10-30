@@ -142,7 +142,7 @@ void BVS_gaussian::mcmc(
             // random order of indexes for better mixing. Note that here 'updateIdx' is different from the one in 'sampleGamma()'
             arma::uvec updateIdx = Rcpp::as<arma::uvec>(Rcpp::sample(entireIdx, n_updates, false)); // here 'replace = false'
 
-            double pi = 0.5;
+            double pj = hyperpar.pj; //0.5;
             for (auto j : updateIdx)
             {
                 arma::mat thetaStar = betas;
@@ -153,10 +153,10 @@ void BVS_gaussian::mcmc(
 
                 double quad = arma::as_scalar((dataclass.y - dataclass.X * thetaStar).t() *
                                               (dataclass.y - dataclass.X * thetaStar));
-                double c_j = pi * std::exp(-0.5/sigmaSq * quad);
+                double c_j = pj * std::exp(-0.5/sigmaSq * quad);
                 quad = arma::as_scalar((dataclass.y - dataclass.X * thetaStarStar).t() *
                                        (dataclass.y - dataclass.X * thetaStarStar));
-                double d_j = (1.-pi) * std::exp(-0.5/sigmaSq * quad);
+                double d_j = (1.-pj) * std::exp(-0.5/sigmaSq * quad);
 
                 double pTilde = c_j/(c_j+d_j);
                 gammas(j) = R::rbinom(1, pTilde);
@@ -306,10 +306,14 @@ void BVS_gaussian::sampleGamma(
 
     // TODO: check if pi0 is needed
     // double pi = pi0;
+
     for(auto i: updateIdx)
     {
-        double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
-                             hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        // the following pi is wrong for pi_j; see below
+        // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+        //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+        double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
+                                hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }

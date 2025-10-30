@@ -122,7 +122,8 @@ Rcpp::List run_mcmc(
         Rcpp::as<double>(hyperparList["tauA"]),
         Rcpp::as<double>(hyperparList["tauB"]),
         Rcpp::as<double>(hyperparList["kappaA"]),
-        Rcpp::as<double>(hyperparList["kappaB"])
+        Rcpp::as<double>(hyperparList["kappaB"]),
+        Rcpp::as<double>(hyperparList["pj"])
     );
 
     // hyperparList = Rcpp::List();  // Clear it by creating a new empty List

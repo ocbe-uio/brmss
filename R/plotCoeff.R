@@ -76,7 +76,7 @@ plotCoeff <- function(dat,
 
   if (estimator == "beta") {
     betas.mcmc <- datMCMC$output$betas[-c(1:burnin), ]
-    betas.true <- dat$betas[-1, ]
+    betas.true <- as.matrix(dat$betas[-1, ])
     if (!intercept) {
       betas.mcmc <- betas.mcmc[, -seq(1, ((p + 1) * L), by = p + 1)]
     }

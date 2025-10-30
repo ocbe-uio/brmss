@@ -108,6 +108,8 @@ public:
     const double kappaA;
     const double kappaB;
 
+    const double pj;
+
     // Constructor to initialize the constants
     hyperparClass(
         double piA_,
@@ -122,7 +124,9 @@ public:
         double tauB_,
 
         double kappaA_,
-        double kappaB_
+        double kappaB_,
+
+        double pj
     ) :
         piA(piA_),
         piB(piB_),
@@ -136,7 +140,9 @@ public:
         tauB(tauB_),
 
         kappaA(kappaA_),
-        kappaB(kappaB_)
+        kappaB(kappaB_),
+
+        pj(pj)
     {}
 } ;
 

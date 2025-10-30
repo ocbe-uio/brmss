@@ -12,7 +12,7 @@ double BVS_subfunc::gammaMC3Proposal(
     //arma::umat mutantGamma = gammas;
     unsigned int n_updates_MC3 = std::max(5., std::ceil( (double)(p) / 5. )); //arbitrary number
 
-    Rcpp::IntegerVector entireIdx = Rcpp::seq(0, p);
+    Rcpp::IntegerVector entireIdx = Rcpp::seq(0, p - 1);
     updateIdx = Rcpp::as<arma::uvec>(Rcpp::sample(entireIdx, n_updates_MC3, false)); // here 'replace = false'
 
     for( auto i : updateIdx)

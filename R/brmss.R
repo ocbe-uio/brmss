@@ -162,6 +162,10 @@ brmss <- function(y, x,
     hyperpar$kappaA <- 1 # 3
     hyperpar$kappaB <- 1 # This is for Gamma prior
   }
+  
+  if (!"pj" %in% names(hyperpar)) {
+    hyperpar$pj <- 0.5 # This is fixed Bernoulli probability according to Kuo & Mallick (1998, Sankhyā)
+  }
 
   # hyperpar$tauSq <- rep(1, L)
   # hyperpar$tau0Sq <- 1
@@ -201,6 +205,7 @@ brmss <- function(y, x,
   ret$input$burnin <- burnin
   ret$input$thin <- thin
   ret$input$hyperpar <- hyperpar
+  ret$input$arms.list <- arms.list
 
 
   #################
