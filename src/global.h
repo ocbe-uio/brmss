@@ -28,7 +28,7 @@ inline double lowerbound = LOWER_BOUND;
 
 enum class Family_Type
 {
-    gaussian=1, logit, probit, poisson, beta, weibull, dirichlet, mvprobit
+    gaussian=1, logit, probit, poisson, beta, weibull, dirichlet, mgaussian, mvprobit
 }; // scoped enum
 
 enum class Gamma_Sampler_Type

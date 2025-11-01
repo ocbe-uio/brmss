@@ -1,12 +1,12 @@
 /* header file for Bayesian variable selection via Metropolis-Hastings sampler*/
 
-#ifndef BVS_GAUSSIAN_H
-#define BVS_GAUSSIAN_H
+#ifndef BVS_HRR_H
+#define BVS_HRR_H
 
 #include "global.h"
 
 
-class BVS_gaussian
+class BVS_HRR
 {
 public:
 
@@ -14,19 +14,17 @@ public:
         unsigned int nIter,
         unsigned int burnin,
         unsigned int thin,
-        double sigmaSq,
         double& tau0Sq,
         arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
-        Gamma_Gibbs_Type gammaGibbs,
+        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 
         arma::vec& sigmaSq_mcmc,
-        double& sigmaSq_post,
         arma::mat& beta_mcmc,
         arma::mat& beta_post,
         arma::umat& gamma_mcmc,
@@ -39,12 +37,19 @@ public:
 
 private:
 
-    // log-density of survival and measurement error data
-    static void loglikelihood(
+    static void loglikelihood_conditional(
         const arma::mat& betas,
-        double sigmaSq,
+        const arma::vec& sigmaSq,
         const DataClass &dataclass,
         arma::vec& loglik
+    );
+
+    static double loglikelihood(
+        const arma::umat& gammas,
+        const arma::vec& tauSq,
+        double sigmaA,
+        double sigmaB,
+        const DataClass &dataclass
     );
 
     static void sampleGamma(
@@ -54,10 +59,10 @@ private:
         unsigned int& gamma_acc_count,
         arma::vec& loglik,
 
+        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double sigmaSq,
         double tau0Sq,
         arma::vec& tauSq,
 
@@ -69,54 +74,41 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        double& logP_beta,
         arma::vec& loglik,
 
+        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double sigmaSq,
         double tau0Sq,
         arma::vec& tauSq,
 
         const DataClass &dataclass
     );
 
-    static double gibbs_sigmaSq(
+    static double logPBeta(
+        const arma::mat& betas,
+        const arma::vec& tauSq,
+        const DataClass& dataclass
+    );
+
+    static void gibbs_sigmaSq(
+        arma::vec& sigmaSq,
         double a,
         double b,
         const DataClass& dataclass,
-        const arma::vec& mu
+        const arma::mat& betas
     );
 
-    static arma::vec randMvNormal(
-        const arma::vec &m,
-        const arma::mat &Sigma
-    );
-
-    static double gibbs_beta_gaussian(
+    static void gibbs_betas(
         arma::mat& betas,
         const arma::umat& gammas,
-        double tau0Sq,
-        double tauSq,
-        double sigmaSq,
-        const DataClass& dataclass
+        const arma::vec& sigmaSq,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const DataClass &dataclass
     );
-    /*
-    static double logP_beta(
-        const arma::mat& betas,
-        double tau0Sq,
-        double tauSq,
-        double sigmaSq,
-        const DataClass& dataclass
-    );
-    */
 
-    static double logPDFNormal(
-        const arma::vec& x,
-        const arma::vec& m,
-        const arma::mat& Sigma
-    );
 };
 
 

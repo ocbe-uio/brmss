@@ -4,6 +4,7 @@
 #include "BVS_gaussian.h"
 #include "BVS_weibull.h"
 #include "BVS_dirichlet.h"
+#include "BVS_HRR.h"
 #include "BVS_mvprobit.h"
 
 #ifdef _OPENMP
@@ -203,6 +204,15 @@ Rcpp::List run_mcmc(
     {
         familyType = Family_Type::dirichlet ;
     }
+    else if ( family == "mgaussian" )
+    {
+        familyType = Family_Type::mgaussian ;
+
+        sigmaSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+        sigmaSq = 1.;
+        sigmaSq_mcmc[0] = sigmaSq;
+        sigmaSq_post = sigmaSq;
+    }
     else if ( family == "mvprobit" )
     {
         familyType = Family_Type::mvprobit ;
@@ -355,6 +365,33 @@ Rcpp::List run_mcmc(
             hyperpar,
             dataclass,
 
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
+        );
+        break;
+
+    case Family_Type::mgaussian :
+        // ::Rf_error("Not yet implemented!");
+        BVS_HRR::mcmc(
+            nIter,
+            burnin,
+            thin,
+            tau0Sq,
+            tauSq,
+            betas,
+            gammas,
+            gammaProposal,
+            gammaSampler,
+            armsPar,
+            hyperpar,
+            dataclass,
+
+            sigmaSq_mcmc,
             beta_mcmc,
             beta_post,
             gamma_mcmc,

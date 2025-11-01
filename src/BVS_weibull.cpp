@@ -290,13 +290,13 @@ void BVS_weibull::sampleGamma(
         // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
         //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
         double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-                                hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+                             hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,
@@ -417,13 +417,13 @@ void BVS_weibull::sampleGammaProposalRatio(
     for(auto i: updateIdx)
     {
         double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-                                hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+                             hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     ARMS_Gibbs::arms_gibbs_beta_weibull(
         armsPar,

@@ -38,6 +38,11 @@ public:
         double sigmaSq
     );
 
+    static arma::vec randMvNormal(
+        const arma::vec &m,
+        const arma::mat &Sigma
+    );
+
 private:
 
     static arma::uvec randWeightedIndexSampleWithoutReplacement(
@@ -58,6 +63,10 @@ private:
     static double logspace_add(
         double a,
         double b
+    );
+
+    static arma::vec randVecNormal(
+        const unsigned int n
     );
 
 

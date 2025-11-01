@@ -280,7 +280,7 @@ void BVS_mvprobit::sampleGamma(
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
@@ -407,7 +407,7 @@ void BVS_mvprobit::sampleGammaProposalRatio(
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
         componentUpdateIdx,
@@ -515,10 +515,10 @@ double BVS_mvprobit::logPBeta(
     alphas_Rowsum = arma::sum(alphas, 1);
 
     double loglik = arma::sum(
-        arma::lgamma(alphas_Rowsum) - 
-        arma::sum(arma::lgamma(alphas), 1) + 
-        arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 )
-    );
+                        arma::lgamma(alphas_Rowsum) -
+                        arma::sum(arma::lgamma(alphas), 1) +
+                        arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 )
+                    );
 
 
     double logP = loglik + logprior;

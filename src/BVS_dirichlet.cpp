@@ -273,16 +273,18 @@ void BVS_dirichlet::sampleGamma(
 
     for(auto i: updateIdx)
     {
+        //// feature-specific Bernoulli probability
         // double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
         //                         hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+        //// response-specific Bernoulli probability
         double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                                hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
+                             hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
@@ -374,8 +376,8 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     // decide on one component
     unsigned int componentUpdateIdx = 0;
-    // if (L > 1) 
-        componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
+    // if (L > 1)
+    componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
     arma::uvec singleIdx_k = { componentUpdateIdx };
 
     // Update the proposed Gamma with 'updateIdx' renewed via its address
@@ -400,16 +402,18 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     for(auto i: updateIdx)
     {
+        //// feature-specific Bernoulli probability
         // double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
         //                         hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+        //// response-specific Bernoulli probability
         double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                                hyperpar.piB + (double)p - (double)(arma::sum(gammas.row(1+i))));
+                             hyperpar.piB + (double)p - (double)(arma::sum(gammas.row(1+i))));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
         componentUpdateIdx,
@@ -517,10 +521,10 @@ double BVS_dirichlet::logPBeta(
     alphas_Rowsum = arma::sum(alphas, 1);
 
     double loglik = arma::sum(
-        arma::lgamma(alphas_Rowsum) - 
-        arma::sum(arma::lgamma(alphas), 1) + 
-        arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 )
-    );
+                        arma::lgamma(alphas_Rowsum) -
+                        arma::sum(arma::lgamma(alphas), 1) +
+                        arma::sum( (alphas - 1.0) % arma::log(dataclass.y), 1 )
+                    );
 
 
     double logP = loglik + logprior;

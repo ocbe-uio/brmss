@@ -219,3 +219,55 @@ double BVS_subfunc::logPDFNormal(const arma::vec& x, double sigmaSq)  // zeroMea
     return -0.5*(double)k*log(2.*M_PI) -0.5*tmp - 0.5 * arma::as_scalar( x.t() * x ) / sigmaSq;
 
 }
+
+arma::vec BVS_subfunc::randMvNormal(
+    const arma::vec &m,
+    const arma::mat &Sigma)
+{
+    unsigned int d = m.n_elem;
+    //check
+    if(Sigma.n_rows != d || Sigma.n_cols != d )
+    {
+        ::Rf_error("Dimension not matching in the multivariate normal sampler");
+    }
+
+    arma::mat A;
+    arma::vec eigval;
+    arma::mat eigvec;
+    arma::rowvec res;
+
+    if( arma::chol(A,Sigma) )
+    {
+        res = randVecNormal(d).t() * A ;
+    }
+    else
+    {
+        if( eig_sym(eigval, eigvec, Sigma) )
+        {
+            res = (eigvec * arma::diagmat(arma::sqrt(eigval)) * randVecNormal(d)).t();
+        }
+        else
+        {
+            ::Rf_error("randMvNorm failing because of singular Sigma matrix");
+        }
+    }
+
+    return res.t() + m;
+}
+
+
+// n-sample normal, parameters mean and variance
+arma::vec BVS_subfunc::randVecNormal(
+    const unsigned int n)
+{
+    // arma::vec res(n);
+    // for(unsigned int i=0; i<n; ++i)
+    // {
+    //     res(i) = R::rnorm( 0., 1. );
+    // }
+
+    arma::vec res = Rcpp::rnorm(n);
+    return res;
+}
+
+

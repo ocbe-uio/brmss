@@ -6,6 +6,7 @@
 
 test_build.R
 results
+tmp
 src/Makevars
 src/*.o
 src/*.so

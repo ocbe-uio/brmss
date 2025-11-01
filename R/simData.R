@@ -11,8 +11,7 @@
 #' @param p number of covariates in each cluster
 #' @param L number of response variables
 #' @param kappas value of the Weibull's shape parameter
-#' @param model one of \code{c("gaussian", "logit", "probit", "poisson",
-#' "beta", "multinomial", "dirichlet", "cox")}
+#' @param model one of \code{c("gaussian", "mgaussian", "dirichlet", "cox")}
 #'
 #' @return An object of a list
 #' \itemize{
@@ -71,9 +70,9 @@ simData <- function(n = 200, p = 10, L = 1,
   attr(x, "scaled:center") <- attr(x, "scaled:scale") <- NULL
   colnames(x) <- paste0("X", 1:p)
   
-  ## simulate Gaussian responses 
-  if (model == "gaussian") {
-    y <- cbind(1, x) %*% betas + rnorm(n)
+  ## simulate (multivariate) Gaussian responses 
+  if (model %in% c("gaussian", "mgaussian")) {
+    y <- cbind(1, x) %*% betas + rnorm(n * L)
     dat <- list(y = y, x = x, betas = betas)
   }
   

@@ -15,8 +15,7 @@ simData(n = 200, p = 10, L = 1, kappas = 2, model = "weibull")
 
 \item{kappas}{value of the Weibull's shape parameter}
 
-\item{model}{one of \code{c("gaussian", "logit", "probit", "poisson",
-"beta", "multinomial", "dirichlet", "cox")}}
+\item{model}{one of \code{c("gaussian", "mgaussian", "dirichlet", "cox")}}
 }
 \value{
 An object of a list

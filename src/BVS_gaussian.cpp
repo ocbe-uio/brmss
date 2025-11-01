@@ -177,7 +177,7 @@ void BVS_gaussian::mcmc(
         // update \betas
 
         // betas %= arma::conv_to<arma::mat>::from(arma::join_cols(arma::ones<arma::urowvec>(1), gammas));
-        betas.elem(arma::find(gammas == 0)).fill(0.); // +1 due to intercept in betas
+        betas.elem(arma::find(gammas == 0)).fill(0.); 
 
         // TODO: test if the following re-update of betas is necessary, since 'sampleGamma()' update both gammas & betas
         // (void)gibbs_beta_gaussian()
@@ -313,14 +313,14 @@ void BVS_gaussian::sampleGamma(
         // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
         //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
         double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-                                hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+                             hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); 
-    
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+
     (void)gibbs_beta_gaussian(
         proposedBeta,
         proposedGamma,
@@ -438,7 +438,7 @@ void BVS_gaussian::sampleGammaProposalRatio(
     for(auto i: updateIdx)
     {
         double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-                                hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
+                             hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
@@ -449,7 +449,7 @@ void BVS_gaussian::sampleGammaProposalRatio(
     // double logPosteriorBeta = 0.;
     double proposedBetaPrior = 0.;
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
-    
+
     // // Note that intercept is updated here
     proposedBetaPrior = gibbs_beta_gaussian(
                             proposedBeta,
@@ -532,54 +532,6 @@ double BVS_gaussian::gibbs_sigmaSq(
     return ( 1. / R::rgamma(a, 1. / b) );
 }
 
-arma::vec BVS_gaussian::randMvNormal(
-    const arma::vec &m,
-    const arma::mat &Sigma)
-{
-    unsigned int d = m.n_elem;
-    //check
-    if(Sigma.n_rows != d || Sigma.n_cols != d )
-    {
-        ::Rf_error("Dimension not matching in the multivariate normal sampler");
-    }
-
-    arma::mat A;
-    arma::vec eigval;
-    arma::mat eigvec;
-    arma::rowvec res;
-
-    if( arma::chol(A,Sigma) )
-    {
-        res = randVecNormal(d).t() * A ;
-    }
-    else
-    {
-        if( eig_sym(eigval, eigvec, Sigma) )
-        {
-            res = (eigvec * arma::diagmat(arma::sqrt(eigval)) * randVecNormal(d)).t();
-        }
-        else
-        {
-            ::Rf_error("randMvNorm failing because of singular Sigma matrix");
-        }
-    }
-
-    return res.t() + m;
-}
-
-// n-sample normal, parameters mean and variance
-arma::vec BVS_gaussian::randVecNormal(
-    const unsigned int n)
-{
-    // arma::vec res(n);
-    // for(unsigned int i=0; i<n; ++i)
-    // {
-    //     res(i) = R::rnorm( 0., 1. );
-    // }
-
-    arma::vec res = Rcpp::rnorm(n);
-    return res;
-}
 
 double BVS_gaussian::gibbs_beta_gaussian(
     arma::mat& betas,
@@ -607,7 +559,7 @@ double BVS_gaussian::gibbs_beta_gaussian(
     }
 
     arma::vec mu = W * X_mask.t() * dataclass.y / sigmaSq;
-    arma::vec beta_mask = randMvNormal( mu, W );
+    arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
     betas(VS_idx) = beta_mask;
 
     double logP = logPDFNormal( beta_mask, mu, W );
