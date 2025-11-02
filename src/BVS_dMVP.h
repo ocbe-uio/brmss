@@ -1,12 +1,12 @@
 /* header file for Bayesian variable selection via Metropolis-Hastings sampler*/
 
-#ifndef BVS_MVPROBIT_H
-#define BVS_MVPROBIT_H
+#ifndef BVS_dMVP_H
+#define BVS_dMVP_H
 
 #include "global.h"
 
 
-class BVS_mvprobit
+class BVS_dMVP
 {
 public:
 
@@ -24,6 +24,7 @@ public:
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 
+        arma::vec& sigmaSq_mcmc,
         arma::mat& beta_mcmc,
         arma::mat& beta_post,
         arma::umat& gamma_mcmc,
@@ -36,11 +37,19 @@ public:
 
 private:
 
-    // log-density of survival and measurement error data
-    static void loglikelihood(
+    static void loglikelihood_conditional(
         const arma::mat& betas,
+        const arma::vec& sigmaSq,
         const DataClass &dataclass,
         arma::vec& loglik
+    );
+
+    static double loglikelihood(
+        const arma::umat& gammas,
+        const arma::vec& tauSq,
+        double sigmaA,
+        double sigmaB,
+        const DataClass &dataclass
     );
 
     static void sampleGamma(
@@ -81,6 +90,23 @@ private:
         const arma::mat& betas,
         const arma::vec& tauSq,
         const DataClass& dataclass
+    );
+
+    static void gibbs_sigmaSq(
+        arma::vec& sigmaSq,
+        double a,
+        double b,
+        const DataClass& dataclass,
+        const arma::mat& betas
+    );
+
+    static void gibbs_betas(
+        arma::mat& betas,
+        const arma::umat& gammas,
+        const arma::vec& sigmaSq,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const DataClass &dataclass
     );
 
 };

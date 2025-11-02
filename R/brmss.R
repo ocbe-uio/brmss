@@ -23,16 +23,18 @@
 #' @param gammaProposal one of \code{c("simple", "posterior")}
 #' @param gammaGibbs one of \code{c("none", "independent", "gprior")}. If 
 #' \code{gammaGibbs = "independent"}, it implements the approach in 
-#' Kuo and Mallick (1998) with gibbs sampling for gammas and with 
-#' independent spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, 
-#' it implements the approach in George and McCulloch (1997) with gibbs sampling 
-#' for gammas and with g-prior for betas
-#' independent spike-and-slab priors for betas.
+#' Kuo and Mallick (1998) with gibbs sampling for gammas and with independent 
+#' spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, it 
+#' implements the approach in George and McCulloch (1997) with gibbs sampling 
+#' for gammas and with g-prior for betas independent spike-and-slab priors for 
+#' betas.
+#' @param varPrior string indicating the prior for the variance of 
+#' response/error term. Default is \code{IG}. For continous multivariate 
+#' responses, it can also be \code{IW} for the inverse-Wishart prior (dense 
+#' variance-covariance matrix) or \code{HIW} for the hyper-inverse Wishart 
+#' (sparse precision matrix)
 #' @param initial a list of initial values for parameters "kappa" and "betas"
 #' @param arms.list a list of parameters for the ARMS algorithm
-#'
-#' @details
-#' family TODO:.....
 #'
 #'
 #' @return An object of a list including the following components:
@@ -46,7 +48,8 @@
 #' \item "\code{gamma_acc_rate}" - acceptance rate of the M-H sampling for gammas
 #' \item "\code{loglikelihood}" - a matrix with MCMC intermediate estimates of individuals' likelihoods
 #' \item "\code{tauSq}" - a vector with MCMC intermediate estimates of tauSq
-#' \item "\code{post}" - a list with posterior means of "kappa", "betas", "gammas",
+#' \item "\code{sigmaSq}" - a vector with MCMC intermediate estimates of sigmaSq
+#' \item "\code{post}" - a list with posterior means of "kappa", "betas", "gammas" and sigmaSq"
 #' }
 #' \item call - the matched call
 #' }
@@ -78,6 +81,7 @@ brmss <- function(y, x,
                   gammaSampler = "bandit",
                   gammaProposal = "simple",
                   gammaGibbs = "none",
+                  varPrior = "IG",
                   initial = NULL,
                   arms.list = NULL) {
   # Validation
@@ -131,6 +135,11 @@ brmss <- function(y, x,
   if (!gammaGibbs %in% c("none", "independent", "gprior")) {
     stop('Argument "gammaGibbs" must be one of c("none", "independent", "gprior")!')
   }
+  
+  varPrior <- toupper(varPrior)
+  if (!varPrior %in% c("IG", "IW", "HIW")) {
+    stop('Argument "varPrior" must be one of c("IG", "IW", "HIW")!')
+  }
 
   # set hyperparamters of all piors
   # if (is.null(hyperpar)) {
@@ -171,7 +180,16 @@ brmss <- function(y, x,
   if (!"pj" %in% names(hyperpar)) {
     hyperpar$pj <- 0.5 # This is fixed Bernoulli probability according to Kuo & Mallick (1998, Sankhyā)
   }
-
+  
+  if (!"nu" %in% names(hyperpar)) {
+    hyperpar$nu <- L + 2 
+  }
+  
+  if (!"psiA" %in% names(hyperpar)) {
+    hyperpar$psiA <- 0.1
+    hyperpar$psiB <- 10
+  }
+  
   # hyperpar$tauSq <- rep(1, L)
   # hyperpar$tau0Sq <- 1
 
@@ -229,6 +247,7 @@ brmss <- function(y, x,
     gammaSampler,
     gammaProposal,
     gammaGibbs,
+    varPrior,
     threads,
     arms.list$n, # n: number of samples to draw, now only 1
     arms.list$nsamp, # nsamp: number of MCMC for generating each ARMS sample, only keeping the last one

@@ -5,7 +5,8 @@
 #include "BVS_weibull.h"
 #include "BVS_dirichlet.h"
 #include "BVS_HRR.h"
-#include "BVS_mvprobit.h"
+#include "BVS_dSUR.h"
+#include "BVS_iMVP.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -34,6 +35,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //' @param gamma_sampler M-H sampler with "mc" or multi-armed "bandit" proposal for gammas
 //' @param gammaProposal one of 'c("simple", "posterior")'
 //' @param gamma_gibbs one of 'c("none", "independent", "gprior")'
+//' @param var_prior string indicating the prior for the variance of response/error term
 //' @param threads number of threads used for parallelization. Default is 1
 //' @param n number of samples to draw
 //' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -57,6 +59,7 @@ Rcpp::List run_mcmc(
     const std::string& gamma_sampler,
     const std::string& gammaProposal,
     const std::string& gamma_gibbs,
+    const std::string& var_prior,
     int threads,
 
     unsigned int n,
@@ -125,7 +128,10 @@ Rcpp::List run_mcmc(
         Rcpp::as<double>(hyperparList["tauB"]),
         Rcpp::as<double>(hyperparList["kappaA"]),
         Rcpp::as<double>(hyperparList["kappaB"]),
-        Rcpp::as<double>(hyperparList["pj"])
+        Rcpp::as<double>(hyperparList["pj"]),
+        Rcpp::as<double>(hyperparList["nu"]),
+        Rcpp::as<double>(hyperparList["psiA"]),
+        Rcpp::as<double>(hyperparList["psiB"])
     );
 
     // hyperparList = Rcpp::List();  // Clear it by creating a new empty List
@@ -259,6 +265,26 @@ Rcpp::List run_mcmc(
         return 1;
     }
 
+    // variance prior
+    Variance_Prior_Type varPrior;
+    if ( var_prior == "IG" )
+    {
+        varPrior = Variance_Prior_Type::IG;
+    }
+    else if ( var_prior == "IW" )
+    {
+        varPrior = Variance_Prior_Type::IW;
+    }
+    else if ( var_prior == "HIW" )
+    {
+        varPrior = Variance_Prior_Type::HIW;
+    }
+    else
+    {
+        ::Rf_error("ERROR: Wrong type of varPrior given!");
+        return 1;
+    }
+
     // mean parameter
     // arma::mat mu = arma::zeros<arma::mat>(N, L);
     // arma::vec mu;
@@ -376,8 +402,70 @@ Rcpp::List run_mcmc(
         break;
 
     case Family_Type::mgaussian :
-        // ::Rf_error("Not yet implemented!");
-        BVS_HRR::mcmc(
+    {
+        switch ( varPrior )
+        {
+        case Variance_Prior_Type::IG :
+            BVS_HRR::mcmc(
+                nIter,
+                burnin,
+                thin,
+                tau0Sq,
+                tauSq,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
+
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
+            break;
+
+        case Variance_Prior_Type::IW :
+            BVS_dSUR::mcmc(
+                nIter,
+                burnin,
+                thin,
+                tau0Sq,
+                tauSq,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
+            break;
+
+        case Variance_Prior_Type::HIW :
+            ::Rf_error("Not yet implemented mgaussian with HIW!");
+            break;
+
+        }
+        break;
+    }
+
+    case Family_Type::mvprobit :
+    {
+        ::Rf_error("Not yet implemented mvprobit!");
+        BVS_iMVP::mcmc(
             nIter,
             burnin,
             thin,
@@ -401,32 +489,7 @@ Rcpp::List run_mcmc(
             tauSq_mcmc
         );
         break;
-
-    case Family_Type::mvprobit :
-        ::Rf_error("Not yet implemented!");
-        BVS_mvprobit::mcmc(
-            nIter,
-            burnin,
-            thin,
-            tau0Sq,
-            tauSq,
-            betas,
-            gammas,
-            gammaProposal,
-            gammaSampler,
-            armsPar,
-            hyperpar,
-            dataclass,
-
-            beta_mcmc,
-            beta_post,
-            gamma_mcmc,
-            gamma_post,
-            gamma_acc_count,
-            loglikelihood_mcmc,
-            tauSq_mcmc
-        );
-        break;
+    }
     }
 
     Rcpp::Rcout << "\n";

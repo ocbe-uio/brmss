@@ -15,6 +15,7 @@ run_mcmc(
   gamma_sampler,
   gammaProposal,
   gamma_gibbs,
+  var_prior,
   threads,
   n,
   nsamp,
@@ -47,6 +48,8 @@ parameters every tick-th iteration. Default is 1}
 \item{gammaProposal}{one of 'c("simple", "posterior")'}
 
 \item{gamma_gibbs}{one of 'c("none", "independent", "gprior")'}
+
+\item{var_prior}{string indicating the prior for the variance of response/error term}
 
 \item{threads}{number of threads used for parallelization. Default is 1}
 

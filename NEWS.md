@@ -6,12 +6,12 @@
 * Fix bug with Gibbs sampling for Bernoulli probability
 * Add hierarchical related regressions (HRR)
 
+* TODO: add mvprobit
 * TODO: define N, L, p as public (global) variables in each family class
 * TODO: Check if better techniques instead of hard upper- or lower-bounds for exponential/log scales!
-* TODO: add mvprobit
 * TODO: add GLM for gaussian, poisson, bernoulli (logit, logistic, clog-log), gamma regression
 * TODO: add logistic regression with Pólya-gamma augmentation
-* TODO: add multivariate linear regression (mgaussian) [No! BayesSUR is already good for mgaussian.]
+* TODO: add MRF prior
 
 ### brmss 0.2 (2025-10-29) (GitHub Only)
 

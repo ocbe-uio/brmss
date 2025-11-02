@@ -17,6 +17,7 @@ brmss(
   gammaSampler = "bandit",
   gammaProposal = "simple",
   gammaGibbs = "none",
+  varPrior = "IG",
   initial = NULL,
   arms.list = NULL
 )
@@ -49,11 +50,17 @@ parameters every tick-th iteration. Default is 1}
 
 \item{gammaGibbs}{one of \code{c("none", "independent", "gprior")}. If 
 \code{gammaGibbs = "independent"}, it implements the approach in 
-Kuo and Mallick (1998) with gibbs sampling for gammas and with 
-independent spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, 
-it implements the approach in George and McCulloch (1997) with gibbs sampling 
-for gammas and with g-prior for betas
-independent spike-and-slab priors for betas.}
+Kuo and Mallick (1998) with gibbs sampling for gammas and with independent 
+spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, it 
+implements the approach in George and McCulloch (1997) with gibbs sampling 
+for gammas and with g-prior for betas independent spike-and-slab priors for 
+betas.}
+
+\item{varPrior}{string indicating the prior for the variance of 
+response/error term. Default is \code{IG}. For continous multivariate 
+responses, it can also be \code{IW} for the inverse-Wishart prior (dense 
+variance-covariance matrix) or \code{HIW} for the hyper-inverse Wishart 
+(sparse precision matrix)}
 
 \item{initial}{a list of initial values for parameters "kappa" and "betas"}
 
@@ -71,16 +78,14 @@ An object of a list including the following components:
 \item "\code{gamma_acc_rate}" - acceptance rate of the M-H sampling for gammas
 \item "\code{loglikelihood}" - a matrix with MCMC intermediate estimates of individuals' likelihoods
 \item "\code{tauSq}" - a vector with MCMC intermediate estimates of tauSq
-\item "\code{post}" - a list with posterior means of "kappa", "betas", "gammas",
+\item "\code{sigmaSq}" - a vector with MCMC intermediate estimates of sigmaSq
+\item "\code{post}" - a list with posterior means of "kappa", "betas", "gammas" and sigmaSq"
 }
 \item call - the matched call
 }
 }
 \description{
 This is the main function to fit various Bayesian regression models
-}
-\details{
-family TODO:.....
 }
 \examples{
 

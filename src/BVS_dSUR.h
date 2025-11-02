@@ -1,12 +1,12 @@
 /* header file for Bayesian variable selection via Metropolis-Hastings sampler*/
 
-#ifndef BVS_HRR_H
-#define BVS_HRR_H
+#ifndef BVS_dSUR_H
+#define BVS_dSUR_H
 
 #include "global.h"
 
 
-class BVS_HRR
+class BVS_dSUR
 {
 public:
 
@@ -38,16 +38,16 @@ private:
 
     static void loglikelihood_conditional(
         const arma::mat& betas,
-        const arma::vec& sigmaSq,
+        const arma::mat& RhoU,
+        const arma::mat& SigmaRho,
         const DataClass &dataclass,
         arma::vec& loglik
     );
 
     static double loglikelihood(
-        const arma::umat& gammas,
-        const arma::vec& tauSq,
-        double sigmaA,
-        double sigmaB,
+        const arma::mat& betas,
+        const arma::mat& RhoU,
+        const arma::mat& SigmaRho,
         const DataClass &dataclass
     );
 
@@ -63,22 +63,62 @@ private:
         arma::mat& betas,
         double tau0Sq,
         arma::vec& tauSq,
+        const arma::mat& SigmaRho,
+        const arma::mat& RhoU,
 
         const DataClass &dataclass
     );
 
-    static void gibbs_sigmaSq(
-        arma::vec& sigmaSq,
-        double a,
-        double b,
+    static double gibbs_SigmaRho(
+        arma::mat& SigmaRho,
+        const double psi,
+        arma::mat& RhoU,
+        const double nu,
         const DataClass& dataclass,
         const arma::mat& betas
+    );
+
+    static double logPSigmaRho(
+        const arma::mat& SigmaRho,
+        const double psi,
+        const double nu,
+        const DataClass& dataclass,
+        const arma::mat& betas
+    );
+
+    static void samplePsi(
+        double& psi,
+        const double psiA,
+        const double psiB,
+        const double nu,
+        double& logP_psi,
+        double& logP_SigmaRho,
+        const arma::mat& SigmaRho,
+        const DataClass& dataclass,
+        const arma::mat& betas
+    );
+
+    static arma::mat createRhoU(
+        const arma::mat& U,
+        const arma::mat&  SigmaRho
     );
 
     static void gibbs_betas(
         arma::mat& betas,
         const arma::umat& gammas,
-        const arma::vec& sigmaSq,
+        const arma::mat& SigmaRho,
+        const arma::mat& RhoU,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const DataClass &dataclass
+    );
+
+    static void gibbs_betaK(
+        const unsigned int k,
+        arma::mat& betas,
+        const arma::umat& gammas,
+        const arma::mat& SigmaRho,
+        const arma::mat& RhoU,
         const double tau0Sq,
         const arma::vec& tauSq,
         const DataClass &dataclass

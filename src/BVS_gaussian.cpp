@@ -177,7 +177,7 @@ void BVS_gaussian::mcmc(
         // update \betas
 
         // betas %= arma::conv_to<arma::mat>::from(arma::join_cols(arma::ones<arma::urowvec>(1), gammas));
-        betas.elem(arma::find(gammas == 0)).fill(0.); 
+        betas.elem(arma::find(gammas == 0)).fill(0.);
 
         // TODO: test if the following re-update of betas is necessary, since 'sampleGamma()' update both gammas & betas
         // (void)gibbs_beta_gaussian()

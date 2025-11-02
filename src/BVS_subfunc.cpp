@@ -196,7 +196,9 @@ double BVS_subfunc::logspace_add(
     return std::max(a, b) + std::log( (double)(1. + std::exp( (double)-std::abs((double)(a - b)) )));
 }
 
-double BVS_subfunc::logPDFBernoulli(unsigned int x, double pi)
+double BVS_subfunc::logPDFBernoulli(
+    unsigned int x,
+    double pi)
 {
     if( x > 1 ||  x < 0 )
         return -std::numeric_limits<double>::infinity();
@@ -204,19 +206,50 @@ double BVS_subfunc::logPDFBernoulli(unsigned int x, double pi)
         return (double)(x) * std::log(pi) + (1.-(double)(x)) * std::log(1. - pi);
 }
 
-double BVS_subfunc::logPDFNormal(double x, double sigmaSq)  // zeroMean
+double BVS_subfunc::logPDFNormal(
+    double x,
+    double sigmaSq)  // zeroMean
 {
 
     return -0.5*log(2.*M_PI) -0.5*std::log(sigmaSq) - 0.5 * x * x / sigmaSq;
 
 }
 
-double BVS_subfunc::logPDFNormal(const arma::vec& x, double sigmaSq)  // zeroMean and independentVar
+double BVS_subfunc::logPDFNormal(
+    const arma::vec& x,
+    double sigmaSq)  // zeroMean and independentVar
 {
     unsigned int k = x.n_elem;
     double tmp = (double)k * std::log(sigmaSq); // log-determinant(Sigma)
 
     return -0.5*(double)k*log(2.*M_PI) -0.5*tmp - 0.5 * arma::as_scalar( x.t() * x ) / sigmaSq;
+
+}
+
+double BVS_subfunc::logPDFNormal(
+    const arma::vec& x,
+    const arma::vec& m,
+    const double Sigma)
+{
+    //this is more a log likelihood rather than logPDF here, since the input vector is indep realisations with same sigma and (possibly) different means
+    // we rely on amradillo for parallelisation wrt to individuals
+    unsigned int n = x.n_elem;
+
+    return -0.5*(double)n*log(2.*M_PI) -0.5*n*log(Sigma) -0.5/Sigma * arma::as_scalar( (x-m).t() * (x-m) );
+
+}
+
+double BVS_subfunc::logPDFNormal(
+    const arma::vec& x,
+    const arma::vec& m,
+    const arma::mat& Sigma)
+{
+    unsigned int k = Sigma.n_cols;
+
+    double sign, tmp;
+    arma::log_det(tmp, sign, Sigma ); //sign is not importantas det SHOULD be > 0 as for positive definiteness!
+
+    return -0.5*(double)k*log(2.*M_PI) -0.5*tmp -0.5* arma::as_scalar( (x-m).t() * arma::inv_sympd(Sigma) * (x-m) );
 
 }
 
@@ -257,8 +290,7 @@ arma::vec BVS_subfunc::randMvNormal(
 
 
 // n-sample normal, parameters mean and variance
-arma::vec BVS_subfunc::randVecNormal(
-    const unsigned int n)
+arma::vec BVS_subfunc::randVecNormal(const unsigned int n)
 {
     // arma::vec res(n);
     // for(unsigned int i=0; i<n; ++i)
@@ -270,4 +302,30 @@ arma::vec BVS_subfunc::randVecNormal(
     return res;
 }
 
+double BVS_subfunc::logPDFGamma(double x, double a, double b)
+{
+    if( x < 0 || b < 0 || a < 0 )
+        return -std::numeric_limits<double>::infinity();
+    else
+        return -a*log(b) -std::lgamma(a) + (a-1.)*log(x) -x/b;
+}
 
+double BVS_subfunc::logPDFIGamma(double x, double a, double b)
+{
+    if( x < 0 || b < 0 || a < 0 )
+        return -std::numeric_limits<double>::infinity();
+    else
+        return a*log(b) -std::lgamma(a) + (-a-1.)*log(x) -b/x;
+}
+
+double BVS_subfunc::randIGamma(double shape, double scale)
+{
+    //check
+    if(shape <= 0 || scale <= 0 )
+    {
+        ::Rf_error(" Negative parameter in the gamma sampler");
+    }
+
+    return 1./R::rgamma(shape, 1./scale);
+    //return 1./Rcpp::rgamma(1, shape, 1./scale)[0];
+}

@@ -38,9 +38,35 @@ public:
         double sigmaSq
     );
 
+    static double logPDFNormal(
+        const arma::vec& x,
+        const arma::vec& m,
+        const double Sigma
+    );
+
+    static double logPDFNormal(
+        const arma::vec& x,
+        const arma::vec& m,
+        const arma::mat& Sigma
+    );
+
     static arma::vec randMvNormal(
         const arma::vec &m,
         const arma::mat &Sigma
+    );
+
+    static double logPDFGamma(
+        double x,
+        double a,
+        double b
+    );
+
+    static double logPDFIGamma(
+        double x, double a, double b
+    );
+
+    static double randIGamma(
+        double shape, double scale
     );
 
 private:

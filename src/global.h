@@ -41,6 +41,11 @@ enum class Gamma_Gibbs_Type
     none = 1, independent, gprior
 }; // scoped enum
 
+enum class Variance_Prior_Type
+{
+    IG = 1, IW, HIW
+}; // scoped enum
+
 class armsParmClass
 {
 public:
@@ -110,6 +115,10 @@ public:
 
     const double pj;
 
+    const double nu;
+    const double psiA;
+    const double psiB;
+
     // Constructor to initialize the constants
     hyperparClass(
         double piA_,
@@ -126,7 +135,11 @@ public:
         double kappaA_,
         double kappaB_,
 
-        double pj
+        double pj_,
+
+        double nu_,
+        double psiA_,
+        double psiB_
     ) :
         piA(piA_),
         piB(piB_),
@@ -142,7 +155,11 @@ public:
         kappaA(kappaA_),
         kappaB(kappaB_),
 
-        pj(pj)
+        pj(pj_),
+
+        nu(nu_),
+        psiA(psiA_),
+        psiB(psiB_)
     {}
 } ;
 
