@@ -43,7 +43,7 @@ void BVS_dSUR::mcmc(
 
     double psi = 1.;
     double logP_psi = 0.;
-    double logP_SigmaRho = 0.;
+    // double logP_SigmaRho = 0.;
 
     // std::cout << "...debug12\n";
     gamma_acc_count = 0;
@@ -95,7 +95,7 @@ void BVS_dSUR::mcmc(
         // std::cout << "...debug15\n";
 
         // update reparametrized covariance matrix
-        logP_SigmaRho = gibbs_SigmaRho(
+        (void)gibbs_SigmaRho(
                             SigmaRho,
                             psi,
                             RhoU,
@@ -166,6 +166,15 @@ void BVS_dSUR::mcmc(
             tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
         }
         tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
+
+        // update logP_SigmaRho for updating psi next
+        double logP_SigmaRho = logPSigmaRho(
+                            SigmaRho,
+                            psi,
+                            hyperpar.nu,
+                            dataclass,
+                            betas
+                        );
 
         // random-walk MH update for psi
         samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho, dataclass, betas);
