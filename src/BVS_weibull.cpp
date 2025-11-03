@@ -146,6 +146,7 @@ void BVS_weibull::mcmc(
                 dataclass
             );
         }
+        betas.elem(arma::find(gammas == 0)).fill(0.);
 
         // update \betas
         ARMS_Gibbs::arms_gibbs_beta_weibull(

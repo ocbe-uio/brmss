@@ -124,6 +124,8 @@ void BVS_dirichlet::mcmc(
                 dataclass
             );
         }
+        betas.elem(arma::find(gammas == 0)).fill(0.);
+
         // std::cout << "...debug17\n";
         // update all betas
         ARMS_Gibbs::arms_gibbs_beta_dirichlet(

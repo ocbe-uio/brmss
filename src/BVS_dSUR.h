@@ -69,6 +69,23 @@ private:
         const DataClass &dataclass
     );
 
+    static void sampleGammaProposalRatio(
+        arma::umat& gammas,
+        Gamma_Sampler_Type gamma_sampler,
+        arma::mat& logP_gamma,
+        unsigned int& gamma_acc_count,
+        arma::vec& loglik,
+        const hyperparClass& hyperpar,
+
+        arma::mat& betas,
+        double tau0Sq,
+        arma::vec& tauSq,
+        const arma::mat& SigmaRho,
+        const arma::mat& RhoU,
+
+        const DataClass &dataclass
+    );
+
     static double gibbs_SigmaRho(
         arma::mat& SigmaRho,
         const double psi,
@@ -113,12 +130,22 @@ private:
         const DataClass &dataclass
     );
 
+    static double logPBeta(
+        const arma::mat& betas,
+        const arma::umat& gammas,
+        const arma::mat& SigmaRho,
+        const arma::mat& RhoU,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const DataClass &dataclass
+    );
+
     static void gibbs_betaK(
         const unsigned int k,
         arma::mat& betas,
         const arma::umat& gammas,
         const arma::mat& SigmaRho,
-        const arma::mat& RhoU,
+        arma::mat& RhoU,
         const double tau0Sq,
         const arma::vec& tauSq,
         const DataClass &dataclass
