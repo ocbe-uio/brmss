@@ -86,7 +86,7 @@ private:
         const DataClass &dataclass
     );
 
-    static double gibbs_SigmaRho(
+    static void gibbs_SigmaRho(
         arma::mat& SigmaRho,
         const double psi,
         arma::mat& RhoU,

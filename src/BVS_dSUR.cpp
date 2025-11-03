@@ -95,14 +95,14 @@ void BVS_dSUR::mcmc(
         // std::cout << "...debug15\n";
 
         // update reparametrized covariance matrix
-        (void)gibbs_SigmaRho(
-                            SigmaRho,
-                            psi,
-                            RhoU,
-                            hyperpar.nu,
-                            dataclass,
-                            betas
-                        );
+        gibbs_SigmaRho(
+            SigmaRho,
+            psi,
+            RhoU,
+            hyperpar.nu,
+            dataclass,
+            betas
+        );
 
         // std::cout << "...debug16\n";
         // update \gammas -- variable selection indicators
@@ -169,12 +169,12 @@ void BVS_dSUR::mcmc(
 
         // update logP_SigmaRho for updating psi next
         double logP_SigmaRho = logPSigmaRho(
-                            SigmaRho,
-                            psi,
-                            hyperpar.nu,
-                            dataclass,
-                            betas
-                        );
+                                   SigmaRho,
+                                   psi,
+                                   hyperpar.nu,
+                                   dataclass,
+                                   betas
+                               );
 
         // random-walk MH update for psi
         samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho, dataclass, betas);
@@ -753,7 +753,7 @@ double BVS_dSUR::logP_gibbs_betaK(
     return logP;
 }
 
-double BVS_dSUR::gibbs_SigmaRho(
+void BVS_dSUR::gibbs_SigmaRho(
     arma::mat& SigmaRho,
     const double psi,
     arma::mat& RhoU,
@@ -761,7 +761,7 @@ double BVS_dSUR::gibbs_SigmaRho(
     const DataClass& dataclass,
     const arma::mat& betas)
 {
-    double logP = 0.;
+    // double logP = 0.;
 
     unsigned int N = dataclass.y.n_rows;
     unsigned int L = dataclass.y.n_cols;
@@ -802,9 +802,9 @@ double BVS_dSUR::gibbs_SigmaRho(
             }
             rhoMean = Sigma( singleIdx_k, conditioninIndexes ) * rhoVar ;
             thisSigmaTT -= arma::as_scalar( rhoMean * Sigma( conditioninIndexes, singleIdx_k ) );
-            
+
             /*
-            arma::vec u_tilde = U.col(k) - U.cols(conditioninIndexes) * SigmaRho(singleIdx_k,conditioninIndexes).t(); 
+            arma::vec u_tilde = U.col(k) - U.cols(conditioninIndexes) * SigmaRho(singleIdx_k,conditioninIndexes).t();
             double thisSigmaTT2 = psi * (1.0 +
                 arma::accu(SigmaRho(singleIdx_k,conditioninIndexes) % SigmaRho(singleIdx_k,conditioninIndexes))) +
                 arma::as_scalar( u_tilde.t()*u_tilde);
@@ -822,7 +822,7 @@ double BVS_dSUR::gibbs_SigmaRho(
         // std::cout << "...debug (a,b)=(" << a << ", " << b << "); sigma_kk=" << SigmaRho(k,k) << "\n";
         // SigmaRho(k,k) = 1.0;
 
-        logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
+        // logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
 
 
         // *** Off-Diagonal Element(s)
@@ -834,7 +834,7 @@ double BVS_dSUR::gibbs_SigmaRho(
             SigmaRho( singleIdx_k, conditioninIndexes ) =
                 SigmaRho( conditioninIndexes, singleIdx_k ).t();
 
-            logP += BVS_subfunc::logPDFNormal( SigmaRho( conditioninIndexes, singleIdx_k ), rhoMean.t(), SigmaRho(k,k) * rhoVar );
+            // logP += BVS_subfunc::logPDFNormal( SigmaRho( conditioninIndexes, singleIdx_k ), rhoMean.t(), SigmaRho(k,k) * rhoVar );
         }
 
         // add zeros were set at the beginning with the SigmaRho reset, so no need to act now
@@ -845,7 +845,7 @@ double BVS_dSUR::gibbs_SigmaRho(
     //recompute rhoU as the rhos have changed
     RhoU = createRhoU( U, SigmaRho );
 
-    return logP;
+    // return logP;
 }
 
 double BVS_dSUR::logPSigmaRho(
