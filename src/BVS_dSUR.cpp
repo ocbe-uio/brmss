@@ -87,10 +87,6 @@ void BVS_dSUR::mcmc(
                         std::string(cTotalLength * (1. - (m + 1.) / nIter), '-') << // printing empty part
                         "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
 
-        // std::cout << "...debug14\n";
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
 
         // std::cout << "...debug15\n";
 
@@ -157,6 +153,9 @@ void BVS_dSUR::mcmc(
             dataclass
         );
 
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
         // update quantities based on the new betas
         for(unsigned int l=0; l<L; ++l)
         {
