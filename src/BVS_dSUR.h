@@ -130,7 +130,19 @@ private:
         const DataClass &dataclass
     );
 
-    static double logPBeta(
+    static double logP_gibbs_betaK(
+        const unsigned int k,
+        const arma::mat& betas,
+        const arma::umat& gammas,
+        const arma::mat& SigmaRho,
+        // arma::mat& U,
+        arma::mat& RhoU,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const DataClass &dataclass
+    );
+
+    static double logPBetaMask(
         const arma::mat& betas,
         const arma::umat& gammas,
         const arma::mat& SigmaRho,
@@ -140,7 +152,7 @@ private:
         const DataClass &dataclass
     );
 
-    static void gibbs_betaK(
+    static double gibbs_betaK(
         const unsigned int k,
         arma::mat& betas,
         const arma::umat& gammas,

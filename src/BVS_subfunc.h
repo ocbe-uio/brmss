@@ -34,6 +34,11 @@ public:
     );
 
     static double logPDFNormal(
+        const arma::vec& x,
+        const arma::mat& Sigma
+    );
+
+    static double logPDFNormal(
         double x,
         double sigmaSq
     );

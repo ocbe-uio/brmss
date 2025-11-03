@@ -228,6 +228,20 @@ double BVS_subfunc::logPDFNormal(
 
 double BVS_subfunc::logPDFNormal(
     const arma::vec& x,
+    const arma::mat& Sigma)  // zeroMean
+{
+    unsigned int k = Sigma.n_cols;
+
+    double sign, tmp;
+    arma::log_det(tmp, sign, Sigma ); //sign is not importantas det SHOULD be > 0 as for positive definiteness!
+
+    //if(!Sigma.is_symmetric()) std::cout << "asymmetric in logPDFNormal2!!" << std::endl;
+    return -0.5*(double)k*log(2.*M_PI) -0.5*tmp -0.5* arma::as_scalar( (x).t() * arma::inv_sympd(Sigma) * (x) );
+
+}
+
+double BVS_subfunc::logPDFNormal(
+    const arma::vec& x,
     const arma::vec& m,
     const double Sigma)
 {
