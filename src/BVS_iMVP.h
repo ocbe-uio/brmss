@@ -14,8 +14,8 @@ public:
         unsigned int nIter,
         unsigned int burnin,
         unsigned int thin,
-        double& tau0Sq,
-        arma::vec& tauSq,
+        // double& tau0Sq,
+        // arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
         const std::string& gammaProposal,
@@ -42,27 +42,26 @@ private:
         arma::vec& loglik
     );
 
-    static double loglikelihood(
+    static double logLikelihood(
         const arma::mat& Z,
         const arma::umat& gammas,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 
     static void sampleGamma(
-        arma::umat& gammas,
-        Gamma_Sampler_Type gamma_sampler,
-        arma::mat& logP_gamma,
-        unsigned int& gamma_acc_count,
-        arma::vec& loglik,
+    arma::umat& gammas,
+    Gamma_Sampler_Type gamma_sampler,
+    arma::mat& logP_gamma,
+    unsigned int& gamma_acc_count,
+    double& log_likelihood,
+    const hyperparClass& hyperpar,
 
-        const hyperparClass& hyperpar,
+    arma::mat& betas,
+    // const double tau0Sq,
+    const double tauSq,
 
-        arma::mat& betas,
-        double tau0Sq,
-        arma::vec& tauSq,
-
-        const arma::mat& Z,
+    arma::mat& Z,
         const DataClass &dataclass
     );
 
@@ -92,8 +91,8 @@ private:
         const unsigned int k,
         arma::mat& betas,
         const arma::umat& gammas,
-        const double tau0Sq,
-        const arma::vec& tauSq,
+        // const double tau0Sq,
+        const double tauSq,
         const arma::mat& Z,
         const DataClass &dataclass
     );
@@ -110,8 +109,7 @@ private:
         arma::mat& betas,
         const arma::umat& gammas,
         // const arma::vec& sigmaSq,
-        const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const arma::mat& Z,
         const DataClass &dataclass
     );
@@ -121,6 +119,16 @@ private:
         const arma::mat& betas,
         const DataClass &dataclass
     );
+
+    static void sampleTau(
+    double& tauSq,
+    double& logP_tau,
+    double& log_likelihood,
+    const arma::mat& Z,
+    const hyperparClass& hyperpar,
+    const DataClass& dataclass,
+    const arma::umat& gammas
+);
 
 };
 

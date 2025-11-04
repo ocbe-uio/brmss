@@ -8,8 +8,8 @@ void BVS_iMVP::mcmc(
     unsigned int nIter,
     unsigned int burnin,
     unsigned int thin,
-    double& tau0Sq,
-    arma::vec& tauSq,
+    // double& tau0Sq, // no need tau0Sq due to flat prior for beta0
+    // arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gammaProposal,
@@ -63,6 +63,11 @@ void BVS_iMVP::mcmc(
             }
         }
     }
+
+    double tauSq = 1.0;
+    double logP_tau = BVS_subfunc::logPDFIGamma( tauSq, hyperpar.tauA, hyperpar.tauB );
+    double log_likelihood = logLikelihood( Z, gammas, tauSq, dataclass );
+
     // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
     loglikelihood_conditional(
@@ -97,14 +102,7 @@ void BVS_iMVP::mcmc(
 #endif
 
         // update quantities based on the new betas
-        for(unsigned int l=0; l<L; ++l)
-        {
-            //arma::vec logMu = dataclass.X * betas.col(l);
-
-            // update coefficient's variances
-            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
-        }
-        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
+        sampleTau( tauSq, logP_tau, log_likelihood, Z, hyperpar, dataclass, gammas);
 
 
         // std::cout << "...debug16\n";
@@ -114,10 +112,10 @@ void BVS_iMVP::mcmc(
             gammaSampler,
             logP_gamma,
             gamma_acc_count,
-            loglik,
+            log_likelihood,
             hyperpar,
             betas,
-            tau0Sq,
+            // tau0Sq,
             tauSq,
             Z,
             dataclass
@@ -131,7 +129,7 @@ void BVS_iMVP::mcmc(
             betas,
             gammas,
             // sigmaSq,
-            tau0Sq,
+            // tau0Sq,
             tauSq,
             Z,
             dataclass
@@ -139,6 +137,8 @@ void BVS_iMVP::mcmc(
 
         // update latent response variables
         sampleZ(Z, betas,  dataclass);
+
+        log_likelihood = logLikelihood( Z, gammas, tauSq, dataclass);
 
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -152,7 +152,7 @@ void BVS_iMVP::mcmc(
         {
             // sigmaSq_mcmc[1+nIter_thin_count] = sigmaSq[0];
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
+            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
@@ -173,10 +173,10 @@ void BVS_iMVP::mcmc(
 }
 
 // joint likelihood f(Y,Z|...)
-double BVS_iMVP::loglikelihood(
+double BVS_iMVP::logLikelihood(
     const arma::mat& Z,
     const arma::umat& gammas,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
     // dimensions
@@ -197,7 +197,7 @@ double BVS_iMVP::loglikelihood(
         VS_IN_k.shed_row(0); // exclude intercept
 
         arma::mat W_k;
-        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + 1. * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
+        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + tauSq * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
 
         arma::mat invW_k;
         if( !arma::inv_sympd( invW_k, W_k ) )
@@ -212,7 +212,7 @@ double BVS_iMVP::loglikelihood(
         arma::log_det(tmp, sign, invW_k );
         logP += 0.5*tmp;
 
-        // logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq[k]);
+        logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq);
 
         logP -= 0.5*((double)N - 1.0) * std::log(S_gamma);
 
@@ -244,8 +244,8 @@ void BVS_iMVP::gibbs_betas(
     arma::mat& betas,
     const arma::umat& gammas,
     // const arma::vec& sigmaSq,
-    const double tau0Sq,
-    const arma::vec& tauSq,
+    // const double tau0Sq,
+    const double tauSq,
     const arma::mat& Z,
     const DataClass &dataclass)
 {
@@ -261,8 +261,8 @@ void BVS_iMVP::gibbs_betas(
 
         arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
-        diag_elements[0] = 1./tau0Sq;
+        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
+        diag_elements[0] = 1.;// /tau0Sq;
 
         arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
         arma::mat W;
@@ -284,8 +284,8 @@ void BVS_iMVP::gibbs_betaK(
     const unsigned int k,
     arma::mat& betas,
     const arma::umat& gammas,
-    const double tau0Sq,
-    const arma::vec& tauSq,
+    // const double tau0Sq,
+    const double tauSq,
     const arma::mat& Z,
     const DataClass &dataclass)
 {
@@ -296,8 +296,8 @@ void BVS_iMVP::gibbs_betaK(
 
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
-    diag_elements[0] = 1./tau0Sq;
+    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
+    diag_elements[0] = 1.;// /tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
     arma::mat W;
@@ -320,14 +320,14 @@ void BVS_iMVP::sampleGamma(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    arma::vec& loglik,
+    double& log_likelihood,
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double tau0Sq,
-    arma::vec& tauSq,
+    // const double tau0Sq,
+    const double tauSq,
 
-    const arma::mat& Z,
+    arma::mat& Z,
     const DataClass &dataclass)
 {
 
@@ -389,7 +389,7 @@ void BVS_iMVP::sampleGamma(
         componentUpdateIdx,
         proposedBeta,
         proposedGamma,
-        tau0Sq,
+        // tau0Sq,
         tauSq,
         Z,
         dataclass
@@ -397,14 +397,12 @@ void BVS_iMVP::sampleGamma(
 
     // TODO: Do we need proposedZ for proposedLikelihood?
     arma::mat proposedZ = Z;
-    sampleZ(proposedZ, proposedBeta,  dataclass);
+    // sampleZ(proposedZ, proposedBeta,  dataclass);
 
-    // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
-    // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( Z, gammas, tauSq, dataclass );
-    double proposedLikelihood = loglikelihood( proposedZ, proposedGamma, tauSq, dataclass );
+    // compute logLikelihoodRatio
+    double proposedLikelihood = logLikelihood( proposedZ, proposedGamma, tauSq, dataclass );
 
-    double logLikelihoodRatio = proposedLikelihood - loglik0;
+    double logLikelihoodRatio = proposedLikelihood - log_likelihood;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +
@@ -415,7 +413,8 @@ void BVS_iMVP::sampleGamma(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        // loglik = proposedLikelihood;
+        log_likelihood = proposedLikelihood;
+        Z = proposedZ;
         // betas = proposedBeta;
 
         ++gamma_acc_count;
@@ -443,6 +442,35 @@ void BVS_iMVP::sampleGamma(
     // return gammas;
 }
 
+// random walk MH sampler; no full conditional due to integrated out beta
+void BVS_iMVP::sampleTau(
+    double& tauSq,
+    double& logP_tau,
+    double& log_likelihood,
+    const arma::mat& Z,
+    const hyperparClass& hyperpar,
+    const DataClass& dataclass,
+    const arma::umat& gammas
+)
+{
+    double var_tau_proposal = 1.0; //2.38;
+    double proposedTau = std::exp( std::log(tauSq) + R::rnorm(0.0, var_tau_proposal) );
+
+    // double proposedTauPrior = logPTau( proposedTau );
+    double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau , hyperpar.tauA, hyperpar.tauB );
+    double proposedLikelihood = logLikelihood( Z, gammas , proposedTau, dataclass );
+
+    double logAccProb = (proposedTauPrior + proposedLikelihood) - (logP_tau + log_likelihood);
+
+    if( std::log(R::runif(0,1)) < logAccProb )
+    {
+        tauSq = proposedTau;
+        logP_tau = proposedTauPrior;
+        log_likelihood = proposedLikelihood;
+
+        // ++tau_acc_count;
+    }
+}
 
 void BVS_iMVP::sampleZ(
     arma::mat& Z,
