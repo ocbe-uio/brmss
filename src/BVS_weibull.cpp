@@ -36,7 +36,7 @@ void BVS_weibull::mcmc(
     unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
-    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);; // this is declared to be updated in the M-H sampler for gammas
+    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L); // this is declared to be updated in the M-H sampler for gammas
 
     gamma_acc_count = 0;
     double pi = R::rbeta(hyperpar.piA, hyperpar.piB);

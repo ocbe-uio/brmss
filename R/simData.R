@@ -5,13 +5,13 @@
 #'
 #' @name simData
 #'
-#' @importFrom stats rbinom rnorm runif rexp rgamma
+#' @importFrom stats rbinom rnorm runif rexp rgamma dnorm
 #'
 #' @param n number of subjects
 #' @param p number of covariates in each cluster
 #' @param L number of response variables
 #' @param kappas value of the Weibull's shape parameter
-#' @param model one of \code{c("gaussian", "mgaussian", "dirichlet", "cox")}
+#' @param model one of \code{c("gaussian", "bernoulli", "mgaussian", "dirichlet", "cox")}
 #'
 #' @return An object of a list
 #' \itemize{
@@ -73,6 +73,15 @@ simData <- function(n = 200, p = 10, L = 1,
   ## simulate (multivariate) Gaussian responses 
   if (model %in% c("gaussian", "mgaussian")) {
     y <- cbind(1, x) %*% betas + rnorm(n * L)
+    dat <- list(y = y, x = x, betas = betas)
+  }
+  
+  # ## simulate (multivariate) binary responses 
+  if (model == "bernoulli") {
+    y <- matrix(NA, nrow = n, ncol = L)
+    for (i in 1:(n*L)) {
+      y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas + rnorm(n * L) ))
+    }
     dat <- list(y = y, x = x, betas = betas)
   }
   
@@ -159,6 +168,10 @@ simData <- function(n = 200, p = 10, L = 1,
     y <- data.frame(event = event, time = times)
     
     dat <- list(y = y, x = x, betas = betas, kappa = kappas)
+  }
+  
+  if (L > 1) {
+    colnames(dat$y) <- paste0("Y", 1:L)
   }
 
   return(dat)

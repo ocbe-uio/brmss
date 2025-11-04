@@ -14,7 +14,6 @@ void BVS_iMVP::mcmc(
     arma::umat& gammas,
     const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
-    const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
 
@@ -34,8 +33,9 @@ void BVS_iMVP::mcmc(
     unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
-    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);; // this is declared to be updated in the M-H sampler for gammas
-    arma::vec sigmaSq(L, arma::fill::value(1.0));
+    arma::mat Z = arma::zeros<arma::mat>(N, L);
+    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);
+    // arma::vec sigmaSq(L, arma::fill::value(1.0));
 
     // std::cout << "...debug12\n";
     gamma_acc_count = 0;
@@ -43,17 +43,30 @@ void BVS_iMVP::mcmc(
     {
         double pi = R::rbeta(hyperpar.piA, hyperpar.piB);
 
-        for(unsigned int j=1; j<p; ++j)
+        for(unsigned int j=1; j<p; ++j) // starting from j=1 due to intercept
         {
             gammas(j, l) = R::rbinom(1, pi);
             logP_gamma(j, l) = BVS_subfunc::logPDFBernoulli(gammas(j, l), pi);
+
+        }
+
+        // initialize latent response variables
+        for(unsigned int i=0; i<N; ++i)
+        {
+            if( dataclass.y(i,l) )
+            {
+                Z(i, l) = BVS_subfunc::randTruncNorm( 1., 1., 0., 1.0e+6 );
+            }
+            else
+            {
+                Z(i, l) = BVS_subfunc::randTruncNorm( -1, 1., -1.0e+6, 0. );
+            }
         }
     }
     // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
     loglikelihood_conditional(
-        betas,
-        sigmaSq,
+        Z,
         dataclass,
         loglik
     );
@@ -93,15 +106,6 @@ void BVS_iMVP::mcmc(
         }
         tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
 
-        // std::cout << "...debug15\n";
-        // update Gaussian's shape parameter
-        gibbs_sigmaSq(
-            sigmaSq,
-            hyperpar.sigmaA,
-            hyperpar.sigmaB,
-            dataclass,
-            betas
-        );
 
         // std::cout << "...debug16\n";
         // update \gammas -- variable selection indicators
@@ -111,12 +115,11 @@ void BVS_iMVP::mcmc(
             logP_gamma,
             gamma_acc_count,
             loglik,
-            armsPar,
             hyperpar,
             betas,
             tau0Sq,
             tauSq,
-
+            Z,
             dataclass
         );
 
@@ -127,11 +130,15 @@ void BVS_iMVP::mcmc(
         gibbs_betas(
             betas,
             gammas,
-            sigmaSq,
+            // sigmaSq,
             tau0Sq,
             tauSq,
+            Z,
             dataclass
         );
+
+        // update latent response variables
+        sampleZ(Z, betas,  dataclass);
 
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -143,15 +150,14 @@ void BVS_iMVP::mcmc(
         // save results of thinned iterations
         if((m+1) % thin == 0)
         {
-            sigmaSq_mcmc[1+nIter_thin_count] = sigmaSq[0];
+            // sigmaSq_mcmc[1+nIter_thin_count] = sigmaSq[0];
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
             tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
             loglikelihood_conditional(
-                betas,
-                sigmaSq,
+                Z,
                 dataclass,
                 loglik
             );
@@ -166,11 +172,11 @@ void BVS_iMVP::mcmc(
 
 }
 
+// joint likelihood f(Y,Z|...)
 double BVS_iMVP::loglikelihood(
+    const arma::mat& Z,
     const arma::umat& gammas,
     const arma::vec& tauSq,
-    double sigmaA,
-    double sigmaB,
     const DataClass &dataclass)
 {
     // dimensions
@@ -185,14 +191,13 @@ double BVS_iMVP::loglikelihood(
 
     for( unsigned int k=0; k<L; ++k)
     {
-        // arma::uvec singleIdx_k = { k };
-        arma::vec res = dataclass.y.col(k) - arma::mean( dataclass.y.col(k) );
+        arma::vec res = Z.col(k) - arma::mean( Z.col(k) );
 
         arma::uvec VS_IN_k = arma::find(gammas.col(k));
         VS_IN_k.shed_row(0); // exclude intercept
 
         arma::mat W_k;
-        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + 1./tauSq[k] * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
+        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + 1. * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
 
         arma::mat invW_k;
         if( !arma::inv_sympd( invW_k, W_k ) )
@@ -207,92 +212,47 @@ double BVS_iMVP::loglikelihood(
         arma::log_det(tmp, sign, invW_k );
         logP += 0.5*tmp;
 
-        logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq[k]);
+        // logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq[k]);
 
-        logP -= 0.5*(2.0*sigmaA + (double)N - 1.0) * std::log(2.0*sigmaB + S_gamma);
+        logP -= 0.5*((double)N - 1.0) * std::log(S_gamma);
+
+        // add probit log-likelihood log[f(Y|Z)]
+        logP += arma::sum( dataclass.y.col(k) % arma::log(arma::normcdf(Z.col(k))) +
+                           (1.0-dataclass.y.col(k)) % arma::log(1.0-arma::normcdf(Z.col(k))) );
     }
 
     return logP; // this is un-normalized log-likelihood, different from R-pkg BayesSUR
 
 }
 
-// individual loglikelihoods
+// individual loglikelihoods f(Y|Z)
 void BVS_iMVP::loglikelihood_conditional(
-    const arma::mat& betas,
-    const arma::vec& sigmaSq,
+    const arma::mat& Z,
     const DataClass &dataclass,
     arma::vec& loglik)
 {
-    // dimensions
-    unsigned int N = dataclass.y.n_rows;
-    unsigned int L = dataclass.y.n_cols;
 
-    loglik.zeros(N); // RESET THE WHOLE VECTOR !!!
-
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-
-    for(unsigned int l=0; l<L; ++l)
-    {
-        arma::vec res = dataclass.y.col(l) - dataclass.X * betas.col(l);
-        loglik += -0.5*log(2.*M_PI*sigmaSq[l]) -0.5/sigmaSq[l]* (res % res);
-
-    }
+    // loglik.zeros(N); // RESET THE WHOLE VECTOR !!!
+    loglik =
+        arma::sum( dataclass.y % arma::log(arma::normcdf(Z))  +
+                   (1.0-dataclass.y) % arma::log(1.0-arma::normcdf(Z)), 1 );
 
 }
 
-/*
-void BVS_iMVP::gibbs_betaK(
-    unsigned int componentUpdateIdx,
-    arma::mat& betas,
-    const arma::umat& gammas,
-    const double tau0Sq,
-    const double tauSq,
-    const DataClass &dataclass)
-{
-
-    double logP = 0.;
-
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
-    unsigned int L = dataclass.y.n_cols;
-
-    // TODO: yMean is needed if y is not standardized
-
-    arma::uvec VS_IN_k = arma::find(gammas.col(componentUpdateIdx));
-
-    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
-    diag_elements[0] = 1./tau0Sq;
-
-    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) / sigmaSq + arma::diagmat(diag_elements);
-    arma::mat W;
-    if( !arma::inv_sympd( W,  invW ) )
-    {
-        arma::inv(W, invW, arma::inv_opts::allow_approx);
-    }
-
-    arma::vec mu = W * dataclass.X.cols(VS_IN_k).t() * dataclass.y / sigmaSq;
-    arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
-
-    arma::uvec singleIdx_k = {componentUpdateIdx};
-    betaK(VS_idx, singleIdx_k) = beta_mask;
-
-}
-    */
 
 void BVS_iMVP::gibbs_betas(
     arma::mat& betas,
     const arma::umat& gammas,
-    const arma::vec& sigmaSq,
+    // const arma::vec& sigmaSq,
     const double tau0Sq,
     const arma::vec& tauSq,
+    const arma::mat& Z,
     const DataClass &dataclass)
 {
 
     // unsigned int N = dataclass.X.n_rows;
     // unsigned int p = dataclass.X.n_cols;
-    unsigned int L = dataclass.y.n_cols;
+    unsigned int L = Z.n_cols;
 
     // TODO: yMean is needed if y is not standardized
 
@@ -304,19 +264,53 @@ void BVS_iMVP::gibbs_betas(
         arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
         diag_elements[0] = 1./tau0Sq;
 
-        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) / sigmaSq[k] + arma::diagmat(diag_elements);
+        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
         arma::mat W;
         if( !arma::inv_sympd( W,  invW ) )
         {
             arma::inv(W, invW, arma::inv_opts::allow_approx);
         }
 
-        arma::vec mu = W * dataclass.X.cols(VS_IN_k).t() * dataclass.y.col(k) / sigmaSq[k];
+        arma::vec mu = W * dataclass.X.cols(VS_IN_k).t() * Z.col(k);
         arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
 
         arma::uvec singleIdx_k = {k};
         betas(VS_IN_k, singleIdx_k) = beta_mask;
     }
+
+}
+
+void BVS_iMVP::gibbs_betaK(
+    const unsigned int k,
+    arma::mat& betas,
+    const arma::umat& gammas,
+    const double tau0Sq,
+    const arma::vec& tauSq,
+    const arma::mat& Z,
+    const DataClass &dataclass)
+{
+
+    // unsigned int N = dataclass.X.n_rows;
+    // unsigned int p = dataclass.X.n_cols;
+    unsigned int L = Z.n_cols;
+
+    arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
+
+    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
+    diag_elements[0] = 1./tau0Sq;
+
+    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
+    arma::mat W;
+    if( !arma::inv_sympd( W,  invW ) )
+    {
+        arma::inv(W, invW, arma::inv_opts::allow_approx);
+    }
+
+    arma::vec mu = W * dataclass.X.cols(VS_IN_k).t() * Z.col(k);
+    arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
+
+    arma::uvec singleIdx_k = {k};
+    betas(VS_IN_k, singleIdx_k) = beta_mask;
 
 }
 
@@ -327,13 +321,13 @@ void BVS_iMVP::sampleGamma(
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     arma::vec& loglik,
-    const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
     double tau0Sq,
     arma::vec& tauSq,
 
+    const arma::mat& Z,
     const DataClass &dataclass)
 {
 
@@ -343,7 +337,7 @@ void BVS_iMVP::sampleGamma(
 
     double logProposalRatio = 0;
 
-    unsigned int N = dataclass.y.n_rows;
+    unsigned int N = Z.n_rows;
     unsigned int p = gammas.n_rows - 1;
     unsigned int L = gammas.n_cols;
 
@@ -388,11 +382,27 @@ void BVS_iMVP::sampleGamma(
         logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
+    arma::mat proposedBeta = betas;
+    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+
+    gibbs_betaK(
+        componentUpdateIdx,
+        proposedBeta,
+        proposedGamma,
+        tau0Sq,
+        tauSq,
+        Z,
+        dataclass
+    );
+
+    // TODO: Do we need proposedZ for proposedLikelihood?
+    arma::mat proposedZ = Z;
+    sampleZ(proposedZ, proposedBeta,  dataclass);
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( gammas, tauSq, hyperpar.sigmaA, hyperpar.sigmaB, dataclass );
-    double proposedLikelihood = loglikelihood( proposedGamma, tauSq, hyperpar.sigmaA, hyperpar.sigmaB, dataclass );
+    double loglik0 = loglikelihood( Z, gammas, tauSq, dataclass );
+    double proposedLikelihood = loglikelihood( proposedZ, proposedGamma, tauSq, dataclass );
 
     double logLikelihoodRatio = proposedLikelihood - loglik0;
 
@@ -434,27 +444,39 @@ void BVS_iMVP::sampleGamma(
 }
 
 
-void BVS_iMVP::gibbs_sigmaSq(
-    arma::vec& sigmaSq,
-    double a,
-    double b,
-    const DataClass& dataclass,
-    const arma::mat& betas
+void BVS_iMVP::sampleZ(
+    arma::mat& Z,
+    const arma::mat& betas,
+    // const arma::umat& gammas,
+    const DataClass &dataclass
 )
 {
     unsigned int N = dataclass.y.n_rows;
     unsigned int L = dataclass.y.n_cols;
 
-    double a_sigma = a + 0.5 * (double)(N);
+    // Z.elem(arma::find( (dataclass.y == 1. && externalZ < 0.) || (dataclass.y == 0. && externalZ > 0.) )).fill(0.);
+    Z.fill(0.); // reset all entries
+    arma::mat Mus = dataclass.X * betas;
 
-    for (unsigned int l=0; l<L; ++l)
+    for( unsigned int k=0; k<L; ++k)
     {
-        double b_sigma = b + 0.5 * arma::as_scalar(
-                             (dataclass.y.col(l) - dataclass.X*betas.col(l)).t() *
-                             (dataclass.y.col(l) - dataclass.X*betas.col(l))
-                         );
+        arma::uvec singleIdx_k = {k};
+        // arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-        sigmaSq[l] = 1. / R::rgamma(a_sigma, 1. / b_sigma);
+        for( unsigned int i=0; i<N; ++i)
+        {
+            // double mu_ik = arma::as_scalar( dataclass.X.cols(VS_IN_k) * betas(VS_IN_k, singleIdx_k) );
+
+            if( dataclass.y(i,k) && (Mus(i,k) > 0.) )
+            {
+                Z(i, k) = BVS_subfunc::randTruncNorm( Mus(i,k), 1., 0., 1.0e+6 );
+            }
+            else if( (dataclass.y(i,k) == 0.) && (Mus(i,k) < 0.) )
+            {
+                Z(i, k) = BVS_subfunc::randTruncNorm( Mus(i,k), 1., -1.0e+6, 0. );
+            }
+        }
+
     }
 
 }

@@ -343,3 +343,19 @@ double BVS_subfunc::randIGamma(double shape, double scale)
     return 1./R::rgamma(shape, 1./scale);
     //return 1./Rcpp::rgamma(1, shape, 1./scale)[0];
 }
+
+double BVS_subfunc::randTruncNorm(
+    double m,
+    double sd,
+    double lower,
+    double upper)
+{
+    // find quantiles that correspond the the given low and high levels
+    double p_lower = R::pnorm( lower, m, sd, true, false );
+    double p_upper = R::pnorm( upper, m, sd, true, false );
+
+    // draw quantiles uniformly between the limits and pass these to the relevant quantile function
+    double ret = R::qnorm( R::runif(p_lower, p_upper), m, sd, true, false );
+
+    return ret;
+}

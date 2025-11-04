@@ -464,7 +464,7 @@ Rcpp::List run_mcmc(
 
     case Family_Type::mvprobit :
     {
-        ::Rf_error("Not yet implemented mvprobit!");
+        // ::Rf_error("Not yet implemented mvprobit!");
         BVS_iMVP::mcmc(
             nIter,
             burnin,
@@ -475,7 +475,6 @@ Rcpp::List run_mcmc(
             gammas,
             gammaProposal,
             gammaSampler,
-            armsPar,
             hyperpar,
             dataclass,
 

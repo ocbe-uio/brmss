@@ -74,6 +74,13 @@ public:
         double shape, double scale
     );
 
+    static double randTruncNorm(
+        double m,
+        double sd,
+        double lower,
+        double upper
+    );
+
 private:
 
     static arma::uvec randWeightedIndexSampleWithoutReplacement(

@@ -33,7 +33,7 @@ void BVS_HRR::mcmc(
     unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
-    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L);; // this is declared to be updated in the M-H sampler for gammas
+    arma::mat logP_gamma = arma::zeros<arma::mat>(p, L); // this is declared to be updated in the M-H sampler for gammas
     arma::vec sigmaSq(L, arma::fill::value(1.0));
 
     // std::cout << "...debug12\n";

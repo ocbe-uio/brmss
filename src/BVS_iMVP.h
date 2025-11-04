@@ -20,7 +20,6 @@ public:
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
-        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 
@@ -38,17 +37,15 @@ public:
 private:
 
     static void loglikelihood_conditional(
-        const arma::mat& betas,
-        const arma::vec& sigmaSq,
+        const arma::mat& Z,
         const DataClass &dataclass,
         arma::vec& loglik
     );
 
     static double loglikelihood(
+        const arma::mat& Z,
         const arma::umat& gammas,
         const arma::vec& tauSq,
-        double sigmaA,
-        double sigmaB,
         const DataClass &dataclass
     );
 
@@ -59,13 +56,13 @@ private:
         unsigned int& gamma_acc_count,
         arma::vec& loglik,
 
-        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
         double tau0Sq,
         arma::vec& tauSq,
 
+        const arma::mat& Z,
         const DataClass &dataclass
     );
 
@@ -76,7 +73,6 @@ private:
         unsigned int& gamma_acc_count,
         arma::vec& loglik,
 
-        const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
@@ -92,6 +88,16 @@ private:
         const DataClass& dataclass
     );
 
+    static void gibbs_betaK(
+        const unsigned int k,
+        arma::mat& betas,
+        const arma::umat& gammas,
+        const double tau0Sq,
+        const arma::vec& tauSq,
+        const arma::mat& Z,
+        const DataClass &dataclass
+    );
+
     static void gibbs_sigmaSq(
         arma::vec& sigmaSq,
         double a,
@@ -103,9 +109,16 @@ private:
     static void gibbs_betas(
         arma::mat& betas,
         const arma::umat& gammas,
-        const arma::vec& sigmaSq,
+        // const arma::vec& sigmaSq,
         const double tau0Sq,
         const arma::vec& tauSq,
+        const arma::mat& Z,
+        const DataClass &dataclass
+    );
+
+    static void sampleZ(
+        arma::mat& Z,
+        const arma::mat& betas,
         const DataClass &dataclass
     );
 
