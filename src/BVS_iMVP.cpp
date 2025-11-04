@@ -97,9 +97,6 @@ void BVS_iMVP::mcmc(
                         "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
 
         // std::cout << "...debug14\n";
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
 
         // update quantities based on the new betas
         sampleTau( tauSq, logP_tau, log_likelihood, Z, hyperpar, dataclass, gammas);
