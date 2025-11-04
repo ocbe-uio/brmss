@@ -50,7 +50,7 @@ void BVS_HRR::mcmc(
 
     double tauSq = 1.0;
     double logP_tau = BVS_subfunc::logPDFIGamma( tauSq, hyperpar.tauA, hyperpar.tauB );
-    double log_likelihood = loglikelihood( gammas, tauSq, hyperpar, dataclass );
+    double log_likelihood = logLikelihood( gammas, tauSq, hyperpar, dataclass );
 
     // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
@@ -101,7 +101,7 @@ void BVS_HRR::mcmc(
             gammaSampler,
             logP_gamma,
             gamma_acc_count,
-            loglik,
+            log_likelihood,
             hyperpar,
             betas,
             tauSq,
@@ -159,7 +159,7 @@ void BVS_HRR::sampleGamma(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    arma::vec& loglik,
+    double& log_likelihood,
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
@@ -224,10 +224,10 @@ void BVS_HRR::sampleGamma(
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( gammas, tauSq, hyperpar, dataclass );
-    double proposedLikelihood = loglikelihood( proposedGamma, tauSq, hyperpar, dataclass );
+    // double log_likelihood0 = logLikelihood( gammas, tauSq, hyperpar, dataclass );
+    double proposedLikelihood = logLikelihood( proposedGamma, tauSq, hyperpar, dataclass );
 
-    double logLikelihoodRatio = proposedLikelihood - loglik0;
+    double logLikelihoodRatio = proposedLikelihood - log_likelihood;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +
@@ -238,7 +238,7 @@ void BVS_HRR::sampleGamma(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        // loglik = proposedLikelihood;
+        log_likelihood = proposedLikelihood;
         // betas = proposedBeta;
 
         ++gamma_acc_count;
@@ -267,7 +267,7 @@ void BVS_HRR::sampleGamma(
 }
 
 
-double BVS_HRR::loglikelihood(
+double BVS_HRR::logLikelihood(
     const arma::umat& gammas,
     const double tauSq,
     const hyperparClass& hyperpar,
@@ -331,7 +331,7 @@ void BVS_HRR::sampleTau(
 
     // double proposedTauPrior = logPTau( proposedTau );
     double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau , hyperpar.tauA, hyperpar.tauB );
-    double proposedLikelihood = loglikelihood( gammas , proposedTau, hyperpar, dataclass );
+    double proposedLikelihood = logLikelihood( gammas , proposedTau, hyperpar, dataclass );
 
     double logAccProb = (proposedTauPrior + proposedLikelihood) - (logP_tau + log_likelihood);
 

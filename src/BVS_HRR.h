@@ -50,7 +50,7 @@ private:
         arma::vec& loglik
     );
 
-    static double loglikelihood(
+    static double logLikelihood(
         const arma::umat& gammas,
         const double tauSq,
         const hyperparClass& hyperpar,
@@ -62,7 +62,7 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        arma::vec& loglik,
+        double& log_likelihood,
 
         const hyperparClass& hyperpar,
 
