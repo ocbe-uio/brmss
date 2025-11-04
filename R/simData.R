@@ -44,21 +44,13 @@ simData <- function(n = 200, p = 10, L = 1,
   }
 
   ## effects
-  betas <- matrix(c(-1, -.5, .8, .8, -1, 0, 0, 0, 0, 0), ncol = 1)
-  p0 <- 6 # limit true relevant features only among the first p0 features
-
-  if (p < 10) { # this condition is invalid in our paper, since we set low-dimensional p=10
-    betas <- betas[1:p, ]
-    p0 <- p
-  } else {
-    if (p > 10) {
-      betas <- rbind(betas, matrix(0, nrow = p - 10, ncol = L))
-    }
+  if (p < 5) {
+    stop("p must be at least 5!")
   }
+  betas <- matrix(c(-1, -.5, .8, .8, -1, rep(0, p * L - 5)), nrow = p, ncol = L)
 
   # generate other effects if multi-responses
   if (L > 1) {
-    betas <- cbind(betas, matrix(0, nrow = p, ncol = L - 1))
     betas[1:min(2, p), 2:L] <- c(-1, 1) # runif(min(2, p) * (L - 3), -2, 2)
   }
 

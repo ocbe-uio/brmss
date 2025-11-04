@@ -14,8 +14,6 @@ public:
         unsigned int nIter,
         unsigned int burnin,
         unsigned int thin,
-        double& tau0Sq,
-        arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
         const std::string& gammaProposal,
@@ -36,6 +34,15 @@ public:
 
 private:
 
+    static void sampleTau(
+    double& tauSq,
+    double& logP_tau,
+    double& log_likelihood,
+    const hyperparClass& hyperpar,
+    const DataClass& dataclass,
+    const arma::umat& gammas
+);
+
     static void loglikelihood_conditional(
         const arma::mat& betas,
         const arma::vec& sigmaSq,
@@ -45,9 +52,8 @@ private:
 
     static double loglikelihood(
         const arma::umat& gammas,
-        const arma::vec& tauSq,
-        double sigmaA,
-        double sigmaB,
+        const double tauSq,
+        const hyperparClass& hyperpar,
         const DataClass &dataclass
     );
 
@@ -61,16 +67,15 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double tau0Sq,
-        arma::vec& tauSq,
+        const double tauSq,
 
         const DataClass &dataclass
     );
 
     static void gibbs_sigmaSq(
         arma::vec& sigmaSq,
-        double a,
-        double b,
+        const double tauSq,
+        const hyperparClass& hyperpar,
         const DataClass& dataclass,
         const arma::mat& betas
     );
@@ -79,8 +84,7 @@ private:
         arma::mat& betas,
         const arma::umat& gammas,
         const arma::vec& sigmaSq,
-        const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 

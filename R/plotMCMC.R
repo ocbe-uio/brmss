@@ -68,9 +68,10 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
   if ("gamma" %in% estimator) {
     bvs.mcmc <- eval(parse(text = paste0("datMCMC$output$", estimator, "s")))
     #bvs.mcmc <- bvs.mcmc[, -1]
+    p <- NCOL(dat$x)
     bvs.mcmc <- bvs.mcmc[, -seq(1, ((p + 1) * L), by = p + 1)]
     nIter <- nrow(bvs.mcmc)
-    p <- NCOL(dat$x)
+    bvs.mcmc <- array(as.vector(bvs.mcmc), dim = c(nIter, p, L))
 
     layout(matrix(1:L, nrow = 1))
     par(mar = c(2, 4.1, 2, 2))
@@ -87,7 +88,8 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
       axis(2, at = 1:p, labels = paste0("x", p:1), tick = FALSE, las = 1)
       for (j in 1:p) {
         for (i in 1:nIter) {
-          if (bvs.mcmc[i, p * (l - 1) + j] == 1) {
+          #if (bvs.mcmc[i, p * (l - 1) + j] == 1) {
+          if (bvs.mcmc[i, j, l] == 1) {
             segments(x0 = i - 0.4, y0 = p - j + 1, x1 = i + 0.4, y1 = p - j + 1, lwd = 1)
           } # Draw line
         }

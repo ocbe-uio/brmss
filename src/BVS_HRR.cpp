@@ -8,8 +8,6 @@ void BVS_HRR::mcmc(
     unsigned int nIter,
     unsigned int burnin,
     unsigned int thin,
-    double& tau0Sq,
-    arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gammaProposal,
@@ -33,6 +31,7 @@ void BVS_HRR::mcmc(
     unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
+    // initialize relevant quantities
     arma::mat logP_gamma = arma::zeros<arma::mat>(p, L); // this is declared to be updated in the M-H sampler for gammas
     arma::vec sigmaSq(L, arma::fill::value(1.0));
 
@@ -48,6 +47,11 @@ void BVS_HRR::mcmc(
             logP_gamma(j, l) = BVS_subfunc::logPDFBernoulli(gammas(j, l), pi);
         }
     }
+
+    double tauSq = 1.0;
+    double logP_tau = BVS_subfunc::logPDFIGamma( tauSq, hyperpar.tauA, hyperpar.tauB );
+    double log_likelihood = loglikelihood( gammas, tauSq, hyperpar, dataclass );
+
     // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
     loglikelihood_conditional(
@@ -77,27 +81,15 @@ void BVS_HRR::mcmc(
                         std::string(cTotalLength * (1. - (m + 1.) / nIter), '-') << // printing empty part
                         "] " << (int)((m + 1.) / nIter * 100.0) << "%\r";             // printing percentage
 
-        // std::cout << "...debug14\n";
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
-
         // update quantities based on the new betas
-        for(unsigned int l=0; l<L; ++l)
-        {
-            //arma::vec logMu = dataclass.X * betas.col(l);
-
-            // update coefficient's variances
-            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
-        }
-        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
+        sampleTau( tauSq, logP_tau, log_likelihood, hyperpar, dataclass, gammas);
 
         // std::cout << "...debug15\n";
         // update Gaussian's shape parameter
         gibbs_sigmaSq(
             sigmaSq,
-            hyperpar.sigmaA,
-            hyperpar.sigmaB,
+            tauSq,
+            hyperpar,
             dataclass,
             betas
         );
@@ -112,7 +104,6 @@ void BVS_HRR::mcmc(
             loglik,
             hyperpar,
             betas,
-            tau0Sq,
             tauSq,
 
             dataclass
@@ -126,7 +117,6 @@ void BVS_HRR::mcmc(
             betas,
             gammas,
             sigmaSq,
-            tau0Sq,
             tauSq,
             dataclass
         );
@@ -143,7 +133,7 @@ void BVS_HRR::mcmc(
         {
             sigmaSq_mcmc[1+nIter_thin_count] = sigmaSq[0];
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
+            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
@@ -173,8 +163,7 @@ void BVS_HRR::sampleGamma(
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double tau0Sq,
-    arma::vec& tauSq,
+    const double tauSq,
 
     const DataClass &dataclass)
 {
@@ -235,8 +224,8 @@ void BVS_HRR::sampleGamma(
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( gammas, tauSq, hyperpar.sigmaA, hyperpar.sigmaB, dataclass );
-    double proposedLikelihood = loglikelihood( proposedGamma, tauSq, hyperpar.sigmaA, hyperpar.sigmaB, dataclass );
+    double loglik0 = loglikelihood( gammas, tauSq, hyperpar, dataclass );
+    double proposedLikelihood = loglikelihood( proposedGamma, tauSq, hyperpar, dataclass );
 
     double logLikelihoodRatio = proposedLikelihood - loglik0;
 
@@ -280,9 +269,8 @@ void BVS_HRR::sampleGamma(
 
 double BVS_HRR::loglikelihood(
     const arma::umat& gammas,
-    const arma::vec& tauSq,
-    double sigmaA,
-    double sigmaB,
+    const double tauSq,
+    const hyperparClass& hyperpar,
     const DataClass &dataclass)
 {
     // dimensions
@@ -304,7 +292,7 @@ double BVS_HRR::loglikelihood(
         VS_IN_k.shed_row(0); // exclude intercept
 
         arma::mat W_k;
-        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + 1./tauSq[k] * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
+        W_k = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + tauSq * arma::eye<arma::mat>(VS_IN_k.n_elem,VS_IN_k.n_elem);
 
         arma::mat invW_k;
         if( !arma::inv_sympd( invW_k, W_k ) )
@@ -319,13 +307,42 @@ double BVS_HRR::loglikelihood(
         arma::log_det(tmp, sign, invW_k );
         logP += 0.5*tmp;
 
-        logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq[k]);
+        logP -= 0.5 * (double)VS_IN_k.n_elem * log(tauSq);
 
-        logP -= 0.5*(2.0*sigmaA + (double)N - 1.0) * std::log(2.0*sigmaB + S_gamma);
+        logP -= 0.5*(2.0*hyperpar.sigmaA + (double)N - 1.0) * std::log(2.0*hyperpar.sigmaB + S_gamma);
     }
 
     return logP; // this is un-normalized log-likelihood, different from R-pkg BayesSUR
 
+}
+
+// random walk MH sampler; no full conditional due to integrated out beta
+void BVS_HRR::sampleTau(
+    double& tauSq,
+    double& logP_tau,
+    double& log_likelihood,
+    const hyperparClass& hyperpar,
+    const DataClass& dataclass,
+    const arma::umat& gammas
+)
+{
+    double var_tau_proposal = 1.0; //2.38;
+    double proposedTau = std::exp( std::log(tauSq) + R::rnorm(0.0, var_tau_proposal) );
+
+    // double proposedTauPrior = logPTau( proposedTau );
+    double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau , hyperpar.tauA, hyperpar.tauB );
+    double proposedLikelihood = loglikelihood( gammas , proposedTau, hyperpar, dataclass );
+
+    double logAccProb = (proposedTauPrior + proposedLikelihood) - (logP_tau + log_likelihood);
+
+    if( std::log(R::runif(0,1)) < logAccProb )
+    {
+        tauSq = proposedTau;
+        logP_tau = proposedTauPrior;
+        log_likelihood = proposedLikelihood;
+
+        // ++tau_acc_count;
+    }
 }
 
 // individual loglikelihoods
@@ -397,8 +414,7 @@ void BVS_HRR::gibbs_betas(
     arma::mat& betas,
     const arma::umat& gammas,
     const arma::vec& sigmaSq,
-    const double tau0Sq,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
 
@@ -415,8 +431,8 @@ void BVS_HRR::gibbs_betas(
 
         arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
-        diag_elements[0] = 1./tau0Sq;
+        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq/sigmaSq[k]));
+        diag_elements[0] = 1.;///tau0Sq;
 
         arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) / sigmaSq[k] + arma::diagmat(diag_elements);
         arma::mat W;
@@ -437,8 +453,8 @@ void BVS_HRR::gibbs_betas(
 
 void BVS_HRR::gibbs_sigmaSq(
     arma::vec& sigmaSq,
-    double a,
-    double b,
+    const double tauSq,
+    const hyperparClass& hyperpar,
     const DataClass& dataclass,
     const arma::mat& betas
 )
@@ -446,14 +462,15 @@ void BVS_HRR::gibbs_sigmaSq(
     unsigned int N = dataclass.y.n_rows;
     unsigned int L = dataclass.y.n_cols;
 
-    double a_sigma = a + 0.5 * (double)(N);
-
     for (unsigned int l=0; l<L; ++l)
     {
-        double b_sigma = b + 0.5 * arma::as_scalar(
+        double a_sigma = hyperpar.sigmaA + 0.5 * (N + arma::sum(betas.col(l) != 0.));
+        double b_sigma = hyperpar.sigmaB + 0.5 * ( 
+            arma::as_scalar(
                              (dataclass.y.col(l) - dataclass.X*betas.col(l)).t() *
-                             (dataclass.y.col(l) - dataclass.X*betas.col(l))
-                         );
+                             (dataclass.y.col(l) - dataclass.X*betas.col(l)) + 
+                             0.5 / tauSq * betas.col(l).t() * betas.col(l)
+                         ));
 
         sigmaSq[l] = 1. / R::rgamma(a_sigma, 1. / b_sigma);
     }
