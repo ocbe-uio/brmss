@@ -15,7 +15,7 @@
 // constexpr double UPPER_BOUND = 700.0;
 constexpr double UPPER_BOUND_2 = 1.0e10; // 1.0e100 will result in numeric issue in ARMS algorithm for Weibull model
 // constexpr double UPPER_BOUND_3 = 170.0;
-// constexpr double LOWER_BOUND = 1.0e-10;
+constexpr double LOWER_BOUND_0 = 1.0e-10;
 constexpr double UPPER_BOUND_3 = 1.0e100;
 constexpr double LOWER_BOUND = 1.0e-100;
 
@@ -24,6 +24,7 @@ constexpr double LOWER_BOUND = 1.0e-100;
 inline double upperbound2 = UPPER_BOUND_2;
 inline double upperbound3 = UPPER_BOUND_3;
 inline double lowerbound = LOWER_BOUND;
+inline double lowerbound0 = LOWER_BOUND_0;
 
 
 enum class Family_Type

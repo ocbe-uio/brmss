@@ -35,13 +35,13 @@ public:
 private:
 
     static void sampleTau(
-    double& tauSq,
-    double& logP_tau,
-    double& log_likelihood,
-    const hyperparClass& hyperpar,
-    const DataClass& dataclass,
-    const arma::umat& gammas
-);
+        double& tauSq,
+        double& logP_tau,
+        double& log_likelihood,
+        const hyperparClass& hyperpar,
+        const DataClass& dataclass,
+        const arma::umat& gammas
+    );
 
     static void loglikelihood_conditional(
         const arma::mat& betas,

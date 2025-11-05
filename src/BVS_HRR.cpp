@@ -330,8 +330,8 @@ void BVS_HRR::sampleTau(
     double proposedTau = std::exp( std::log(tauSq) + R::rnorm(0.0, var_tau_proposal) );
 
     // double proposedTauPrior = logPTau( proposedTau );
-    double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau , hyperpar.tauA, hyperpar.tauB );
-    double proposedLikelihood = logLikelihood( gammas , proposedTau, hyperpar, dataclass );
+    double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau, hyperpar.tauA, hyperpar.tauB );
+    double proposedLikelihood = logLikelihood( gammas, proposedTau, hyperpar, dataclass );
 
     double logAccProb = (proposedTauPrior + proposedLikelihood) - (logP_tau + log_likelihood);
 
@@ -465,12 +465,12 @@ void BVS_HRR::gibbs_sigmaSq(
     for (unsigned int l=0; l<L; ++l)
     {
         double a_sigma = hyperpar.sigmaA + 0.5 * (N + arma::sum(betas.col(l) != 0.));
-        double b_sigma = hyperpar.sigmaB + 0.5 * ( 
-            arma::as_scalar(
-                             (dataclass.y.col(l) - dataclass.X*betas.col(l)).t() *
-                             (dataclass.y.col(l) - dataclass.X*betas.col(l)) + 
-                             0.5 / tauSq * betas.col(l).t() * betas.col(l)
-                         ));
+        double b_sigma = hyperpar.sigmaB + 0.5 * (
+                             arma::as_scalar(
+                                 (dataclass.y.col(l) - dataclass.X*betas.col(l)).t() *
+                                 (dataclass.y.col(l) - dataclass.X*betas.col(l)) +
+                                 0.5 / tauSq * betas.col(l).t() * betas.col(l)
+                             ));
 
         sigmaSq[l] = 1. / R::rgamma(a_sigma, 1. / b_sigma);
     }

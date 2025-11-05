@@ -45,23 +45,24 @@ private:
     static double logLikelihood(
         const arma::mat& Z,
         const arma::umat& gammas,
+        const arma::mat& betas,
         const double tauSq,
         const DataClass &dataclass
     );
 
     static void sampleGamma(
-    arma::umat& gammas,
-    Gamma_Sampler_Type gamma_sampler,
-    arma::mat& logP_gamma,
-    unsigned int& gamma_acc_count,
-    double& log_likelihood,
-    const hyperparClass& hyperpar,
+        arma::umat& gammas,
+        Gamma_Sampler_Type gamma_sampler,
+        arma::mat& logP_gamma,
+        unsigned int& gamma_acc_count,
+        double& log_likelihood,
+        const hyperparClass& hyperpar,
 
-    arma::mat& betas,
-    // const double tau0Sq,
-    const double tauSq,
+        arma::mat& betas,
+        // const double tau0Sq,
+        const double tauSq,
 
-    arma::mat& Z,
+        arma::mat& Z,
         const DataClass &dataclass
     );
 
@@ -121,14 +122,20 @@ private:
     );
 
     static void sampleTau(
-    double& tauSq,
-    double& logP_tau,
-    double& log_likelihood,
-    const arma::mat& Z,
-    const hyperparClass& hyperpar,
-    const DataClass& dataclass,
-    const arma::umat& gammas
-);
+        double& tauSq,
+        double& logP_tau,
+        double& log_likelihood,
+        const arma::mat& Z,
+        const hyperparClass& hyperpar,
+        const DataClass& dataclass,
+        const arma::umat& gammas,
+        const arma::mat& betas
+    );
+
+   static arma::vec zbinprobit(
+        const arma::vec& x,
+        const arma::vec& m
+    );
 
 };
 
