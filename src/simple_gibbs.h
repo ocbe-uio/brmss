@@ -16,7 +16,7 @@ double sampleTau0(
 double sampleTau(
     double a,
     double b,
-    const arma::vec& betas
+    const arma::mat& betas
 );
 
 #endif

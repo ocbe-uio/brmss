@@ -21,11 +21,11 @@ double sampleTau0(
 double sampleTau(
     double a,
     double b,
-    const arma::vec& betas
+    const arma::mat& betas
 )
 {
-    a += 0.5 * arma::sum(betas != 0.);
-    b += 0.5 * arma::sum(betas % betas);
+    a += 0.5 * arma::accu(betas != 0.);
+    b += 0.5 * arma::accu(betas % betas);
 
     return ( 1. / R::rgamma(a, 1. / b) );
 }

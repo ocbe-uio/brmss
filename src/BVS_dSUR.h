@@ -14,8 +14,8 @@ public:
         unsigned int nIter,
         unsigned int burnin,
         unsigned int thin,
-        double& tau0Sq,
-        arma::vec& tauSq,
+        // double& tau0Sq,
+        // arma::vec& tauSq,
         arma::mat& betas,
         arma::umat& gammas,
         const std::string& gammaProposal,
@@ -44,7 +44,7 @@ private:
         arma::vec& loglik
     );
 
-    static double loglikelihood(
+    static double logLikelihood(
         const arma::mat& betas,
         const arma::mat& RhoU,
         const arma::mat& SigmaRho,
@@ -56,13 +56,12 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        arma::vec& loglik,
-
+        double& log_likelihood,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double tau0Sq,
-        arma::vec& tauSq,
+        const double tau0Sq,
+        const double tauSq,
         const arma::mat& SigmaRho,
         const arma::mat& RhoU,
 
@@ -74,12 +73,12 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        arma::vec& loglik,
+        double& log_likelihood,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double tau0Sq,
-        arma::vec& tauSq,
+        const double tau0Sq,
+        const double tauSq,
         const arma::mat& SigmaRho,
         const arma::mat& RhoU,
 
@@ -91,6 +90,7 @@ private:
         const double psi,
         arma::mat& RhoU,
         const double nu,
+        double& logP_SigmaRho,
         const DataClass& dataclass,
         const arma::mat& betas
     );
@@ -98,9 +98,7 @@ private:
     static double logPSigmaRho(
         const arma::mat& SigmaRho,
         const double psi,
-        const double nu,
-        const DataClass& dataclass,
-        const arma::mat& betas
+        const double nu
     );
 
     static void samplePsi(
@@ -110,9 +108,7 @@ private:
         const double nu,
         double& logP_psi,
         double& logP_SigmaRho,
-        const arma::mat& SigmaRho,
-        const DataClass& dataclass,
-        const arma::mat& betas
+        const arma::mat& SigmaRho
     );
 
     static arma::mat createRhoU(
@@ -126,7 +122,7 @@ private:
         const arma::mat& SigmaRho,
         const arma::mat& RhoU,
         const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 
@@ -138,7 +134,7 @@ private:
         // arma::mat& U,
         arma::mat& RhoU,
         const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 
@@ -148,7 +144,7 @@ private:
         const arma::mat& SigmaRho,
         const arma::mat& RhoU,
         const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 
@@ -159,7 +155,7 @@ private:
         const arma::mat& SigmaRho,
         arma::mat& RhoU,
         const double tau0Sq,
-        const arma::vec& tauSq,
+        const double tauSq,
         const DataClass &dataclass
     );
 

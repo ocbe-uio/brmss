@@ -8,8 +8,8 @@ void BVS_dSUR::mcmc(
     unsigned int nIter,
     unsigned int burnin,
     unsigned int thin,
-    double& tau0Sq,
-    arma::vec& tauSq,
+    // double& tau0Sq,
+    // arma::vec& tauSq,
     arma::mat& betas,
     arma::umat& gammas,
     const std::string& gammaProposal,
@@ -41,9 +41,11 @@ void BVS_dSUR::mcmc(
     arma::mat U = dataclass.y - dataclass.X * betas;
     arma::mat RhoU = createRhoU( U, SigmaRho );
 
+    double tau0Sq = 1.;
+    double tauSq = 1.;
     double psi = 1.;
     double logP_psi = 0.;
-    // double logP_SigmaRho = 0.;
+    double logP_SigmaRho = 0.;
 
     // std::cout << "...debug12\n";
     gamma_acc_count = 0;
@@ -58,6 +60,7 @@ void BVS_dSUR::mcmc(
         }
     }
     // std::cout << "...debug13\n";
+    double log_likelihood = logLikelihood( betas, RhoU, SigmaRho, dataclass );
     arma::vec loglik = arma::zeros<arma::vec>(N);
     loglikelihood_conditional(
         betas,
@@ -90,15 +93,36 @@ void BVS_dSUR::mcmc(
 
         // std::cout << "...debug15\n";
 
+        // update quantities based on the new betas
+        // for(unsigned int l=0; l<L; ++l)
+        //     tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
+        tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,0,p-1,L-1));
+        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
+
         // update reparametrized covariance matrix
         gibbs_SigmaRho(
             SigmaRho,
             psi,
             RhoU,
             hyperpar.nu,
+            logP_SigmaRho,
             dataclass,
             betas
         );
+
+        // update logP_SigmaRho for updating psi next
+        // double logP_SigmaRho = logPSigmaRho(
+        //                            SigmaRho,
+        //                            psi,
+        //                            hyperpar.nu,
+        //                            dataclass,
+        //                            betas
+        //                        );
+
+        // random-walk MH update for psi
+        samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho);
+
+        log_likelihood = logLikelihood( betas, RhoU, SigmaRho, dataclass );
 
         // std::cout << "...debug16\n";
         // update \gammas -- variable selection indicators
@@ -109,7 +133,7 @@ void BVS_dSUR::mcmc(
                 gammaSampler,
                 logP_gamma,
                 gamma_acc_count,
-                loglik,
+                log_likelihood,
                 hyperpar,
                 betas,
                 tau0Sq,
@@ -127,7 +151,7 @@ void BVS_dSUR::mcmc(
                 gammaSampler,
                 logP_gamma,
                 gamma_acc_count,
-                loglik,
+                log_likelihood,
                 hyperpar,
                 betas,
                 tau0Sq,
@@ -153,30 +177,6 @@ void BVS_dSUR::mcmc(
             dataclass
         );
 
-#ifdef _OPENMP
-        #pragma omp parallel for
-#endif
-        // update quantities based on the new betas
-        for(unsigned int l=0; l<L; ++l)
-        {
-            //arma::vec logMu = dataclass.X * betas.col(l);
-
-            // update coefficient's variances
-            tauSq[l] = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,l,p-1,l));
-        }
-        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
-
-        // update logP_SigmaRho for updating psi next
-        double logP_SigmaRho = logPSigmaRho(
-                                   SigmaRho,
-                                   psi,
-                                   hyperpar.nu,
-                                   dataclass,
-                                   betas
-                               );
-
-        // random-walk MH update for psi
-        samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho, dataclass, betas);
 
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -190,7 +190,7 @@ void BVS_dSUR::mcmc(
         {
             sigmaSq_mcmc[1+nIter_thin_count] = SigmaRho(0,0); //TODO: only keep the first one for now
             beta_mcmc.row(1+nIter_thin_count) = arma::vectorise(betas).t();
-            tauSq_mcmc[1+nIter_thin_count] = tauSq[0];//hyperpar.tauSq; // TODO: only keep the firs one for now
+            tauSq_mcmc[1+nIter_thin_count] = tauSq;//hyperpar.tauSq; // TODO: only keep the firs one for now
 
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
@@ -218,12 +218,12 @@ void BVS_dSUR::sampleGamma(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    arma::vec& loglik,
+    double& log_likelihood,
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double tau0Sq,
-    arma::vec& tauSq,
+    const double tau0Sq,
+    const double tauSq,
     const arma::mat& SigmaRho,
     const arma::mat& RhoU,
 
@@ -304,10 +304,10 @@ void BVS_dSUR::sampleGamma(
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( betas, RhoU, SigmaRho, dataclass );
-    double proposedLikelihood = loglikelihood( proposedBeta, proposedRhoU, SigmaRho, dataclass );
+    // double loglik0 = logLikelihood( betas, RhoU, SigmaRho, dataclass );
+    double proposedLikelihood = logLikelihood( proposedBeta, proposedRhoU, SigmaRho, dataclass );
 
-    double logLikelihoodRatio = proposedLikelihood - loglik0;
+    double logLikelihoodRatio = proposedLikelihood - log_likelihood;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +
@@ -318,7 +318,7 @@ void BVS_dSUR::sampleGamma(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        // loglik = proposedLikelihood;
+        log_likelihood = proposedLikelihood;
         betas = proposedBeta;
 
         ++gamma_acc_count;
@@ -351,12 +351,12 @@ void BVS_dSUR::sampleGammaProposalRatio(
     Gamma_Sampler_Type gamma_sampler,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
-    arma::vec& loglik,
+    double& log_likelihood,
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    double tau0Sq,
-    arma::vec& tauSq,
+    const double tau0Sq,
+    const double tauSq,
     const arma::mat& SigmaRho,
     const arma::mat& RhoU,
 
@@ -447,10 +447,10 @@ void BVS_dSUR::sampleGammaProposalRatio(
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     // arma::vec proposedLikelihood = loglik;
-    double loglik0 = loglikelihood( betas, RhoU, SigmaRho, dataclass );
-    double proposedLikelihood = loglikelihood( proposedBeta, proposedRhoU, SigmaRho, dataclass );
+    // double loglik0 = logLikelihood( betas, RhoU, SigmaRho, dataclass );
+    double proposedLikelihood = logLikelihood( proposedBeta, proposedRhoU, SigmaRho, dataclass );
 
-    double logLikelihoodRatio = proposedLikelihood - loglik0;
+    double logLikelihoodRatio = proposedLikelihood - log_likelihood;
 
 
     // update density of beta priors
@@ -473,7 +473,7 @@ void BVS_dSUR::sampleGammaProposalRatio(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        // loglik = proposedLikelihood;
+        log_likelihood = proposedLikelihood;
         betas = proposedBeta;
 
         ++gamma_acc_count;
@@ -525,7 +525,7 @@ void BVS_dSUR::loglikelihood_conditional(
     }
 }
 
-double BVS_dSUR::loglikelihood(
+double BVS_dSUR::logLikelihood(
     const arma::mat& betas,
     const arma::mat& RhoU,
     const arma::mat& SigmaRho,
@@ -554,17 +554,14 @@ void BVS_dSUR::gibbs_betas(
     const arma::mat& SigmaRho,
     const arma::mat& RhoU,
     const double tau0Sq,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
     // double logP = 0.;
-
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
     arma::mat U = dataclass.y - dataclass.X * betas;
-    betas.fill( 0. ); // reset here, since we already computed U  above
+    betas.fill( 0. ); // reset here, since we already computed U above
 
     arma::mat y_tilde = dataclass.y - RhoU ;
     y_tilde.each_row() /= (SigmaRho.diag().t()) ; // divide each col by the corresponding element of sigma
@@ -579,14 +576,13 @@ void BVS_dSUR::gibbs_betas(
             y_tilde.col(k) -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
                               ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - dataclass.y.col(k) ) );
         }
-
     }
 
     for(unsigned int k=0; k<L; ++k)
     {
         arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
+        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
         diag_elements[0] = 1./tau0Sq;
 
         arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
@@ -615,13 +611,11 @@ double BVS_dSUR::logPBetaMask(
     const arma::mat& SigmaRho,
     const arma::mat& RhoU,
     const double tau0Sq,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
     double logP = 0.;
 
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
     arma::uvec singleIdx_k(1);
 
@@ -630,7 +624,7 @@ double BVS_dSUR::logPBetaMask(
     {
         arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(tauSq[k]));
+        arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(tauSq));
         diag_elements[0] = tau0Sq;
 
         singleIdx_k[0] = k;
@@ -651,18 +645,17 @@ double BVS_dSUR::gibbs_betaK(
     // arma::mat& U,
     arma::mat& RhoU,
     const double tau0Sq,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
     double logP = 0.;
     // betas.col(k).fill( 0. ); // do not reset here, since we use it to compute U below
 
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
     arma::mat U = dataclass.y - dataclass.X * betas;
     arma::vec y_tilde = dataclass.y.col(k) - RhoU.col(k);
+    y_tilde /= SigmaRho(k,k) ; 
 
     double xtxMultiplier = 0.;
 
@@ -675,7 +668,7 @@ double BVS_dSUR::gibbs_betaK(
 
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
+    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
     diag_elements[0] = 1./tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
@@ -709,18 +702,17 @@ double BVS_dSUR::logP_gibbs_betaK(
     // arma::mat& U,
     arma::mat& RhoU,
     const double tau0Sq,
-    const arma::vec& tauSq,
+    const double tauSq,
     const DataClass &dataclass)
 {
     double logP = 0.;
     // betas.col(k).fill( 0. );
 
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int p = dataclass.X.n_cols;
     unsigned int L = dataclass.y.n_cols;
 
     arma::mat U = dataclass.y - dataclass.X * betas;
     arma::vec y_tilde = dataclass.y.col(k) - RhoU.col(k);
+    y_tilde /= SigmaRho(k,k) ; 
 
     double xtxMultiplier = 0.;
 
@@ -733,7 +725,7 @@ double BVS_dSUR::logP_gibbs_betaK(
 
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
-    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq[k]));
+    arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
     diag_elements[0] = 1./tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
@@ -745,9 +737,10 @@ double BVS_dSUR::logP_gibbs_betaK(
     }
 
     arma::vec mu_k = W_k * dataclass.X.cols(VS_IN_k).t() * y_tilde;
-    arma::vec beta_mask = BVS_subfunc::randMvNormal( mu_k, W_k );
-
-    logP = BVS_subfunc::logPDFNormal( beta_mask, mu_k, W_k );
+    // arma::vec beta_mask = BVS_subfunc::randMvNormal( mu_k, W_k );
+    // logP = BVS_subfunc::logPDFNormal( beta_mask, mu_k, W_k );
+    arma::uvec singleIdx_k = {k};
+    logP = BVS_subfunc::logPDFNormal( betas(VS_IN_k, singleIdx_k), mu_k, W_k );
 
     return logP;
 }
@@ -757,10 +750,11 @@ void BVS_dSUR::gibbs_SigmaRho(
     const double psi,
     arma::mat& RhoU,
     const double nu,
+    double& logP_SigmaRho,
     const DataClass& dataclass,
     const arma::mat& betas)
 {
-    // double logP = 0.;
+    double logP = 0.;
 
     unsigned int N = dataclass.y.n_rows;
     unsigned int L = dataclass.y.n_cols;
@@ -814,14 +808,14 @@ void BVS_dSUR::gibbs_SigmaRho(
         // *** Diagonal Element
 
         // Compute parameters
-        a = 0.5 * ( N + nu - L + nConditioninIndexes + 1. ) ;
+        a = 0.5 * ( N + nu - L + 2*nConditioninIndexes + 1. ) ;
         b = 0.5 * thisSigmaTT ;
 
         SigmaRho(k,k) = BVS_subfunc::randIGamma( a, b );
         // std::cout << "...debug (a,b)=(" << a << ", " << b << "); sigma_kk=" << SigmaRho(k,k) << "\n";
         // SigmaRho(k,k) = 1.0;
 
-        // logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
+        logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
 
 
         // *** Off-Diagonal Element(s)
@@ -833,7 +827,7 @@ void BVS_dSUR::gibbs_SigmaRho(
             SigmaRho( singleIdx_k, conditioninIndexes ) =
                 SigmaRho( conditioninIndexes, singleIdx_k ).t();
 
-            // logP += BVS_subfunc::logPDFNormal( SigmaRho( conditioninIndexes, singleIdx_k ), rhoMean.t(), SigmaRho(k,k) * rhoVar );
+            logP += BVS_subfunc::logPDFNormal( SigmaRho( conditioninIndexes, singleIdx_k ), rhoMean.t(), SigmaRho(k,k) * rhoVar );
         }
 
         // add zeros were set at the beginning with the SigmaRho reset, so no need to act now
@@ -844,24 +838,23 @@ void BVS_dSUR::gibbs_SigmaRho(
     //recompute rhoU as the rhos have changed
     RhoU = createRhoU( U, SigmaRho );
 
+    logP_SigmaRho = logP;
+
     // return logP;
 }
 
 double BVS_dSUR::logPSigmaRho(
     const arma::mat& SigmaRho,
     const double psi,
-    const double nu,
-    const DataClass& dataclass,
-    const arma::mat& betas)
+    const double nu)
 {
     double logP = 0.;
 
-    unsigned int N = dataclass.y.n_rows;
-    unsigned int L = dataclass.y.n_cols;
+    unsigned int L = SigmaRho.n_cols;
 
-    arma::mat U = dataclass.y - dataclass.X * betas;
-    arma::mat Sigma = U.t() * U;
-    Sigma.diag() += psi;
+    // arma::mat U = dataclass.y - dataclass.X * betas;
+    // arma::mat Sigma = U.t() * U;
+    // Sigma.diag() += psi;
 
     double thisSigmaTT;
     arma::uvec conditioninIndexes;
@@ -877,7 +870,7 @@ double BVS_dSUR::logPSigmaRho(
         singleIdx_k(0) = k;
 
         // start computing interesting things
-        thisSigmaTT = Sigma(k,k);
+        thisSigmaTT = psi; //Sigma(k,k);
 
         nConditioninIndexes = k;
         conditioninIndexes.zeros( nConditioninIndexes );
@@ -885,19 +878,23 @@ double BVS_dSUR::logPSigmaRho(
         if( nConditioninIndexes > 0 )
         {
             conditioninIndexes = arma::regspace<arma::uvec>(0, k-1);
-
+            /*
             if( !arma::inv_sympd( rhoVar, Sigma(conditioninIndexes,conditioninIndexes) ) )
             {
                 arma::inv(rhoVar, Sigma(conditioninIndexes,conditioninIndexes), arma::inv_opts::allow_approx);
             }
             rhoMean = Sigma( singleIdx_k, conditioninIndexes ) * rhoVar ;
             thisSigmaTT -= arma::as_scalar( rhoMean * Sigma( conditioninIndexes, singleIdx_k ) );
+            */
+            rhoVar = (1./psi) * arma::eye(nConditioninIndexes,nConditioninIndexes);
+            rhoMean = arma::zeros<arma::rowvec>(nConditioninIndexes); // off-diagonals are zeros
         }
 
         // *** Diagonal Element
 
         // Compute parameters
-        a = 0.5 * ( N + nu - L + nConditioninIndexes + 1. ) ;
+        // a = 0.5 * ( N + nu - L + nConditioninIndexes + 1. ) ;
+        a = 0.5 * ( nu - L + 2*nConditioninIndexes + 1. ) ;
         b = 0.5 * thisSigmaTT ;
 
         logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
@@ -946,17 +943,15 @@ void BVS_dSUR::samplePsi(
     const double nu,
     double& logP_psi,
     double& logP_SigmaRho,
-    const arma::mat& SigmaRho,
-    const DataClass& dataclass,
-    const arma::mat& betas
+    const arma::mat& SigmaRho
 )
 {
-    double var_psi_proposal = 2.38;
+    double var_psi_proposal = 1.0;//2.38;
     double proposedPsi = std::exp( std::log(psi) + R::rnorm(0.0, var_psi_proposal) );
 
     double proposedPsiPrior = BVS_subfunc::logPDFGamma( proposedPsi, psiA, psiB );
     // TODO: the following should be the model's likelihood
-    double proposedSigmaRhoPrior = logPSigmaRho( SigmaRho, proposedPsi, nu, dataclass, betas);
+    double proposedSigmaRhoPrior = logPSigmaRho( SigmaRho, proposedPsi, nu);
 
     double logAccProb = (proposedPsiPrior + proposedSigmaRhoPrior) - (logP_psi + logP_SigmaRho);
 
