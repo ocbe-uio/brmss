@@ -655,7 +655,7 @@ double BVS_dSUR::gibbs_betaK(
 
     arma::mat U = dataclass.y - dataclass.X * betas;
     arma::vec y_tilde = dataclass.y.col(k) - RhoU.col(k);
-    y_tilde /= SigmaRho(k,k) ; 
+    y_tilde /= SigmaRho(k,k) ;
 
     double xtxMultiplier = 0.;
 
@@ -712,7 +712,7 @@ double BVS_dSUR::logP_gibbs_betaK(
 
     arma::mat U = dataclass.y - dataclass.X * betas;
     arma::vec y_tilde = dataclass.y.col(k) - RhoU.col(k);
-    y_tilde /= SigmaRho(k,k) ; 
+    y_tilde /= SigmaRho(k,k) ;
 
     double xtxMultiplier = 0.;
 
@@ -950,7 +950,6 @@ void BVS_dSUR::samplePsi(
     double proposedPsi = std::exp( std::log(psi) + R::rnorm(0.0, var_psi_proposal) );
 
     double proposedPsiPrior = BVS_subfunc::logPDFGamma( proposedPsi, psiA, psiB );
-    // TODO: the following should be the model's likelihood
     double proposedSigmaRhoPrior = logPSigmaRho( SigmaRho, proposedPsi, nu);
 
     double logAccProb = (proposedPsiPrior + proposedSigmaRhoPrior) - (logP_psi + logP_SigmaRho);

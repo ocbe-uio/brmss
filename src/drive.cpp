@@ -7,6 +7,7 @@
 #include "BVS_HRR.h"
 #include "BVS_dSUR.h"
 #include "BVS_iMVP.h"
+#include "BVS_dMVP.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -222,6 +223,8 @@ Rcpp::List run_mcmc(
     else if ( family == "mvprobit" )
     {
         familyType = Family_Type::mvprobit ;
+        sigmaSq_mcmc = arma::zeros<arma::vec>(1+nIter_thin);
+        sigmaSq_mcmc[0] = 1.;
     }
     else
     {
@@ -464,29 +467,61 @@ Rcpp::List run_mcmc(
 
     case Family_Type::mvprobit :
     {
-        // ::Rf_error("Not yet implemented mvprobit!");
-        BVS_iMVP::mcmc(
-            nIter,
-            burnin,
-            thin,
-            // tau0Sq,
-            // tauSq,
-            betas,
-            gammas,
-            gammaProposal,
-            gammaSampler,
-            hyperpar,
-            dataclass,
+        switch ( varPrior )
+        {
+        case Variance_Prior_Type::IG :
+            BVS_iMVP::mcmc(
+                nIter,
+                burnin,
+                thin,
+                // tau0Sq,
+                // tauSq,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
 
-            sigmaSq_mcmc,
-            beta_mcmc,
-            beta_post,
-            gamma_mcmc,
-            gamma_post,
-            gamma_acc_count,
-            loglikelihood_mcmc,
-            tauSq_mcmc
-        );
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
+            break;
+
+        case Variance_Prior_Type::IW :
+            BVS_dMVP::mcmc(
+                nIter,
+                burnin,
+                thin,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
+
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
+            break;
+
+        case Variance_Prior_Type::HIW :
+            ::Rf_error("Not yet implemented mgaussian with HIW!");
+            break;
+
+        }
         break;
     }
     }

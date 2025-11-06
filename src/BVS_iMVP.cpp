@@ -138,11 +138,11 @@ void BVS_iMVP::mcmc(
 
         log_likelihood = logLikelihood( Z, gammas, betas, tauSq, dataclass);
 
-    // if(std::isnan(log_likelihood)){
-    //     std::cout << "...main mcmc() Z=" << Z.t() <<
-    //     "...gammas=" << gammas <<
-    //     "...betas=" << betas << "\n";
-    // }
+        // if(std::isnan(log_likelihood)){
+        //     std::cout << "...main mcmc() Z=" << Z.t() <<
+        //     "...gammas=" << gammas <<
+        //     "...betas=" << betas << "\n";
+        // }
         // save results for un-thinned posterior mean
         if(m >= burnin)
         {
@@ -195,9 +195,9 @@ double BVS_iMVP::logLikelihood(
     normcdf_Z.elem(arma::find(normcdf_Z > 1.0-lowerbound0)).fill(1.0-lowerbound0);
     normcdf_Z.elem(arma::find(normcdf_Z < lowerbound0)).fill(lowerbound0);
 
-#ifdef _OPENMP
+    #ifdef _OPENMP
     #pragma omp parallel for default(shared) reduction(+:logP)
-#endif
+    #endif
 
     for( unsigned int k=0; k<L; ++k)
     {
@@ -227,10 +227,10 @@ double BVS_iMVP::logLikelihood(
         logP -= 0.5*((double)N - 1.0) * std::log(S_gamma);
 
         // add probit log-likelihood log[f(Y|Z)]
-        
+
         logP += arma::sum( dataclass.y.col(k) % arma::log(normcdf_Z.col(k)) +
                            (1.0-dataclass.y.col(k)) % arma::log(1.0-normcdf_Z.col(k)) );
-        
+
     }
     */
 
@@ -245,20 +245,23 @@ double BVS_iMVP::logLikelihood(
     */
 
     //Option3: The following uses log f(y|b,x) = y*log(Φ(xb)) + (1-y)*log(1-Φ(xb))
-    
+
     // arma::mat XB = dataclass.X * betas;
     // logP = arma::accu( dataclass.y % arma::log(arma::normcdf(XB)) +
     //                (1.0-dataclass.y) % arma::log(1.0-arma::normcdf(XB)) );
 
-    
+
     arma::mat normcdf_Z = arma::normcdf(dataclass.X * betas);
+
+    // fix numerical issues if log(0)
     normcdf_Z.elem(arma::find(normcdf_Z > 1.0-lowerbound0)).fill(1.0-lowerbound0);
     normcdf_Z.elem(arma::find(normcdf_Z < lowerbound0)).fill(lowerbound0);
     logP = arma::accu( dataclass.y % arma::log(normcdf_Z) +
-                   (1.0-dataclass.y) % arma::log(1.0-normcdf_Z) );
-    
-    if(std::isnan(logP)){
-        ::Rf_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)="); 
+                       (1.0-dataclass.y) % arma::log(1.0-normcdf_Z) );
+
+    if(std::isnan(logP))
+    {
+        ::Rf_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)=");
         //normcdf_Z.min() << ", " << normcdf_Z.max() << "; sum(B)=" << arma::accu(betas) << "\n";
     }
 
@@ -463,10 +466,10 @@ void BVS_iMVP::sampleGamma(
                         logLikelihoodRatio +
                         logProposalRatio;
 
-    // std::cout << "...debug logAccProb=" << logAccProb << 
-    // "; proposedLikelihood=" << proposedLikelihood << 
-    // "; log_likelihood=" << log_likelihood << 
-    // "; logProposalGammaRatio=" << logProposalGammaRatio << 
+    // std::cout << "...debug logAccProb=" << logAccProb <<
+    // "; proposedLikelihood=" << proposedLikelihood <<
+    // "; log_likelihood=" << log_likelihood <<
+    // "; logProposalGammaRatio=" << logProposalGammaRatio <<
     // "; logProposalRatio=" << logProposalRatio << "\n";
 
     if( std::log(R::runif(0,1)) < logAccProb )

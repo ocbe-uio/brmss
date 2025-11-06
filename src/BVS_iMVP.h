@@ -132,7 +132,7 @@ private:
         const arma::mat& betas
     );
 
-   static arma::vec zbinprobit(
+    static arma::vec zbinprobit(
         const arma::vec& x,
         const arma::vec& m
     );
