@@ -48,7 +48,7 @@ void ARMS_Gibbs::arms_gibbs_beta_logistic(
         if (gammas(j))
         {
             mydata->jj = j;
-
+            
             double xprev = currentPars(j);
             std::vector<double> xsamp(armsPar.nsamp);
 
@@ -73,6 +73,18 @@ void ARMS_Gibbs::arms_gibbs_beta_logistic(
                 Rprintf("In arms_gibbs_beta(): %d-th sample out of range [%f, %f] (fused domain). Got %f.\n", armsPar.nsamp, minD, maxD, xsamp[armsPar.nsamp-1]);
 
             currentPars(j) = xsamp[armsPar.nsamp - 1];
+            
+            /*
+            currentPars(j) = slice_sample (
+                    EvalFunction::log_dens_betas_logistic,
+                    mydata,
+                    currentPars(j),
+                    10,
+                    1.0,
+                    minD,
+                    maxD
+                );
+            */
 
         }
     }
@@ -334,6 +346,7 @@ void ARMS_Gibbs::arms_gibbs_beta_weibull(
     free(mydata);
 }
 
+
 //' Slice sampling for kappa
 //'
 //' @param n Number of samples to draw
@@ -363,7 +376,7 @@ void ARMS_Gibbs::slice_kappa(
     mydata->y = dataclass.y.memptr();
     mydata->event = dataclass.event.memptr();
 
-    slice_sample (
+    currentPars = slice_sample (
         EvalFunction::log_dens_kappa,
         mydata,
         currentPars,
@@ -377,10 +390,10 @@ void ARMS_Gibbs::slice_kappa(
 
 }
 
-void ARMS_Gibbs::slice_sample(
+double ARMS_Gibbs::slice_sample(
     double (*logfn)(double par, void *mydata),
     void *mydata,
-    double& x,
+    double x,
     const unsigned int steps,
     const double w,
     const double lower,
@@ -439,5 +452,7 @@ void ARMS_Gibbs::slice_sample(
         x = xs;
         logy = logys;
     }
+
+    return x;
 
 }

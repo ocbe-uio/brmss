@@ -67,10 +67,10 @@ public:
         arma::vec& logMu
     );
 
-    static void slice_sample(
+    static double slice_sample(
         double (*logfn)(double par, void *mydata),
         void *mydata,
-        double& x,
+        double x,
         const unsigned int steps,
         const double w,
         const double lower,
