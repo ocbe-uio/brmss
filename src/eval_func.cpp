@@ -5,6 +5,46 @@
 #include "eval_func.h"
 #include "global.h"
 
+
+// log-density for logistic regression's coefficients
+double EvalFunction::log_dens_betas_logistic(
+    double par,
+    void *abc_data)
+{
+    double h = 0.;
+
+    // Allocation of a zero-initialized memory block of (num*size) bytes
+    auto mydata_parm = static_cast<dataS*>(abc_data);
+
+    arma::uvec event(const_cast<unsigned int*>(mydata_parm->event), mydata_parm->N, false);
+    arma::mat y(const_cast<double*>(mydata_parm->y), mydata_parm->N, 1, false);
+    arma::mat X(const_cast<double*>(mydata_parm->X), mydata_parm->N, mydata_parm->p, false);
+
+    arma::mat pars(mydata_parm->currentPars, mydata_parm->p, 1, false);
+    pars(mydata_parm->jj) = par;
+
+    arma::vec xb = X * pars;
+    // xb.elem(arma::find(xb > 50.0)).fill(50.0);
+    // xb.elem(arma::find(xb < -50.0)).fill(-50.0);
+    arma::vec prob = 1.0 / (1.0 + arma::exp(-xb));
+    // arma::vec prob = 1.0 / (1.0 + arma::exp(-X * pars));
+    prob.elem(arma::find(prob > 1.0-lowerbound0)).fill(1.0-lowerbound0);
+    prob.elem(arma::find(prob < lowerbound0)).fill(lowerbound0);
+
+    double loglik = arma::accu( y % arma::log(prob) + (1.0-y) % arma::log(1.0-prob) );
+
+    double tau = mydata_parm->tauSq;
+    if(mydata_parm->jj == 0)
+    {
+        tau = mydata_parm->tau0Sq;
+    }
+    double logprior = - par * par / tau / 2.;
+
+    h = loglik + logprior;
+
+    return h;
+}
+
 // log-density for Dirichlet's coefficients
 double EvalFunction::log_dens_betas_dirichlet(
     double par,

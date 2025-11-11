@@ -11,7 +11,7 @@
 #' @param p number of covariates in each cluster
 #' @param L number of response variables
 #' @param kappas value of the Weibull's shape parameter
-#' @param model one of \code{c("gaussian", "bernoulli", "mgaussian", "dirichlet", "cox")}
+#' @param model one of \code{c("gaussian", "logit", "probit", "mgaussian", "dirichlet", "cox")}
 #'
 #' @return An object of a list
 #' \itemize{
@@ -68,15 +68,15 @@ simData <- function(n = 200, p = 10, L = 1,
     dat <- list(y = y, x = x, betas = betas)
   }
   
-  # ## simulate (multivariate) binary responses 
-  if (model == "bernoulli") {
+  # ## simulate (multivariate) probit binary responses 
+  if (model == "probit") {
     y <- matrix(NA, nrow = n, ncol = L)
     betas[1, ] <- -0.5
     repeat{
       for (i in 1:(n*L)) {
-        y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas + rnorm(n * L) ))
+        y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas ))
       }
-      if( min(colMeans(y)) > 0.10 )
+      if( min(colMeans(y)) > 0.05 && max(colMeans(y)) > 1 - 0.05 )
         break
       
       betas[1, ] <- betas[1, ] * (1 - 0.1)
@@ -84,6 +84,22 @@ simData <- function(n = 200, p = 10, L = 1,
     dat <- list(y = y, x = x, betas = betas)
   }
   
+  # ## simulate logistic binary responses 
+  if (model == "logit") {
+    if (L != 1) {
+      stop("Simiulating logistic model responses requires L=1!")
+    }
+    y <- matrix(NA, nrow = n, ncol = 1)
+    betas[1] <- -0.5
+    repeat{
+      y[, 1] <- as.numeric(1 / (1 + exp(-cbind(1, x) %*% betas)) > 0.5)
+      if( mean(y) > 0.10 && mean(y) < 1 - 0.10)
+        break
+      
+      betas[1] <- betas[1] * (1 - 0.1)
+    }
+    dat <- list(y = y, x = x, betas = betas)
+  }
   
   ## simulate proportions from Dirichlet distribution (n, alpha=1:L)
   if (model == "dirichlet") {

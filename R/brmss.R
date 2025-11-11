@@ -88,7 +88,7 @@ brmss <- function(y, x,
   stopifnot(burnin < nIter)
   stopifnot(burnin >= 0)
   
-  if (!family %in% c("gaussian", "probit", "weibull", 
+  if (!family %in% c("gaussian", "logit", "probit", "weibull", 
                      "dirichlet", "mgaussian", "mvprobit")) {
     stop('Argument "family" is not valid!')
   }

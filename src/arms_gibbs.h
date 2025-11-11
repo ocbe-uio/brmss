@@ -14,6 +14,16 @@ class ARMS_Gibbs
 {
 public:
 
+    static void arms_gibbs_beta_logistic(
+        const armsParmClass& armsPar,
+        const hyperparClass& hyperpar,
+        arma::mat& currentPars,
+        arma::umat gammas,
+        double tau0Sq,
+        double tauSq,
+        const DataClass &dataclass
+    );
+
     static void arms_gibbs_beta_dirichlet(
         const armsParmClass& armsPar,
         const hyperparClass& hyperpar,

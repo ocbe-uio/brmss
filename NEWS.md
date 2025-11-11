@@ -6,7 +6,7 @@
 * Fix bug with Gibbs sampling for Bernoulli probability
 * Add hierarchical related regressions (HRR)
 
-* TODO: unknown bug to do with 'SigmaRho(k,k)' far from  1.0 in 'BVS_dSUR.cpp'
+* TODO: for (multivariate) probit model, try sample betas via ARMS
 
 * TODO: add mvprobit
 * TODO: define N, L, p as public (global) variables in each family class

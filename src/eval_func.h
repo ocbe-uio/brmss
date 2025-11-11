@@ -38,6 +38,11 @@ class EvalFunction
 {
 public:
 
+    static double log_dens_betas_logistic
+    (
+        double par,
+        void *abc_data
+    );
 
     static double log_dens_betas_dirichlet
     (
