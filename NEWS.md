@@ -14,6 +14,7 @@
 * TODO: add GLM for gaussian, poisson, bernoulli (logit, logistic, clog-log), gamma regression
 * TODO: add logistic regression with Pólya-gamma augmentation
 * TODO: add MRF prior
+* TODO: pass 'logP_beta' in gammaSample() to avoid repeatedly update
 
 ### brmss 0.2 (2025-10-29) (GitHub Only)
 

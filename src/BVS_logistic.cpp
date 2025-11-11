@@ -165,7 +165,11 @@ arma::vec BVS_logistic::loglikelihood(
     const DataClass &dataclass)
 {
     
-    arma::vec prob = 1.0 / (1.0 + arma::exp(-dataclass.X * betas));
+    arma::vec xb = dataclass.X * betas;
+    // xb.elem(arma::find(xb > 50.0)).fill(50.0);
+    // xb.elem(arma::find(xb < -50.0)).fill(-50.0);
+
+    arma::vec prob = 1.0 / (1.0 + arma::exp(-xb));
     prob.elem(arma::find(prob > 1.0-lowerbound0)).fill(1.0-lowerbound0);
     prob.elem(arma::find(prob < lowerbound0)).fill(lowerbound0);
 

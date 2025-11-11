@@ -76,7 +76,7 @@ simData <- function(n = 200, p = 10, L = 1,
       for (i in 1:(n*L)) {
         y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas ))
       }
-      if( min(colMeans(y)) > 0.05 && max(colMeans(y)) > 1 - 0.05 )
+      if( min(colMeans(y)) > 0.01 && max(colMeans(y)) < 1 - 0.01 )
         break
       
       betas[1, ] <- betas[1, ] * (1 - 0.1)

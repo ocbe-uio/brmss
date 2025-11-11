@@ -157,7 +157,7 @@ brmss <- function(y, x,
     hyperpar$piB <- NCOL(x)
   }
   
-  if (!"tauA" %in% names(hyperpar)) {
+  if (!"sigmaA" %in% names(hyperpar)) {
     hyperpar$sigmaA <- 5
     hyperpar$sigmaB <- 20
   }
