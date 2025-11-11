@@ -1,12 +1,12 @@
 /* header file for Bayesian variable selection via Metropolis-Hastings sampler*/
 
-#ifndef BVS_GAUSSIAN_H
-#define BVS_GAUSSIAN_H
+#ifndef BVS_PROBIT_H
+#define BVS_PROBIT_H
 
 #include "global.h"
 
 
-class BVS_gaussian
+class BVS_probit
 {
 public:
 
@@ -14,19 +14,15 @@ public:
         unsigned int nIter,
         unsigned int burnin,
         unsigned int thin,
-        double sigmaSq,
-        double& tau0Sq,
-        arma::vec& tauSq,
+        double& tau0Sq_,
+        arma::vec& tauSq_,
         arma::mat& betas,
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
-        Gamma_Gibbs_Type gammaGibbs,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 
-        arma::vec& sigmaSq_mcmc,
-        double& sigmaSq_post,
         arma::mat& beta_mcmc,
         arma::mat& beta_post,
         arma::umat& gamma_mcmc,
@@ -42,7 +38,6 @@ private:
     // log-density of survival and measurement error data
     static void loglikelihood(
         const arma::mat& betas,
-        double sigmaSq,
         const DataClass &dataclass,
         arma::vec& loglik
     );
@@ -57,9 +52,9 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double sigmaSq,
+        const arma::vec& z,
         double tau0Sq,
-        arma::vec& tauSq,
+        double tauSq,
 
         const DataClass &dataclass
     );
@@ -75,37 +70,26 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double sigmaSq,
+        const arma::vec& z,
         double tau0Sq,
-        arma::vec& tauSq,
+        double tauSq,
 
         const DataClass &dataclass
     );
 
-    static double gibbs_sigmaSq(
-        double a,
-        double b,
-        const DataClass& dataclass,
-        const arma::vec& mu
-    );
-
-    static double gibbs_beta_gaussian(
+    static double gibbs_beta_probit(
         arma::mat& betas,
         const arma::umat& gammas,
         double tau0Sq,
         double tauSq,
-        double sigmaSq,
+        const arma::vec& z,
         const DataClass& dataclass
     );
-    /*
-    static double logP_beta(
+
+    static arma::vec zbinprobit(
         const arma::mat& betas,
-        double tau0Sq,
-        double tauSq,
-        double sigmaSq,
         const DataClass& dataclass
     );
-    */
 
 };
 

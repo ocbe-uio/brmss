@@ -71,8 +71,15 @@ simData <- function(n = 200, p = 10, L = 1,
   # ## simulate (multivariate) binary responses 
   if (model == "bernoulli") {
     y <- matrix(NA, nrow = n, ncol = L)
-    for (i in 1:(n*L)) {
-      y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas + rnorm(n * L) ))
+    betas[1, ] <- -0.5
+    repeat{
+      for (i in 1:(n*L)) {
+        y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas + rnorm(n * L) ))
+      }
+      if( min(colMeans(y)) > 0.10 )
+        break
+      
+      betas[1, ] <- betas[1, ] * (1 - 0.1)
     }
     dat <- list(y = y, x = x, betas = betas)
   }

@@ -43,8 +43,8 @@ void BVS_dMVP::mcmc(
     arma::mat Psi = arma::zeros<arma::mat>(L, L);
     double tau0Sq = 1.;
     double tauSq = 1.;
-    double psi = 1.;
-    double logP_psi = 0.;
+    // double psi = 1.;
+    // double logP_psi = 0.;
     double logP_SigmaRho = 0.;
 
     // std::cout << "...debug12\n";
@@ -101,7 +101,7 @@ void BVS_dMVP::mcmc(
         // update reparametrized covariance matrix
         gibbs_SigmaRho(
             SigmaRho,
-            psi,
+            // psi,
             RhoU,
             hyperpar.nu,
             logP_SigmaRho,
@@ -109,9 +109,10 @@ void BVS_dMVP::mcmc(
             dataclass,
             betas
         );
+        // /*testing*/SigmaRho = arma::diagmat( arma::ones<arma::vec>(L) );
 
         // random-walk MH update for psi
-        samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho);
+        // samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho);
 
         // std::cout << "...debug16\n";
         // update \gammas -- variable selection indicators
@@ -169,8 +170,11 @@ void BVS_dMVP::mcmc(
             dataclass
         );
 
+        // update sort of covariance matrix Psi
+        updatePsi( SigmaRho, Psi );
+
         // update latent response variables
-        sampleZ(Z, D, betas, SigmaRho, dataclass);
+        sampleZ(Z, D, betas, Psi, dataclass);
 
         log_likelihood = logLikelihood( betas, D, dataclass);
 
@@ -405,6 +409,7 @@ void BVS_dMVP::sampleGammaProposalRatio(
     }
 
     arma::mat proposedBeta = betas;
+    // proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
     arma::mat proposedRhoU = RhoU;
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
@@ -501,8 +506,8 @@ void BVS_dMVP::loglikelihood_conditional(
     normcdf_Z.elem(arma::find(normcdf_Z > 1.0-lowerbound0)).fill(1.0-lowerbound0);
     normcdf_Z.elem(arma::find(normcdf_Z < lowerbound0)).fill(lowerbound0);
     loglik = arma::sum( dataclass.y % arma::log(normcdf_Z) +
-                       (1.0-dataclass.y) % arma::log(1.0-normcdf_Z),
-                    1 );
+                        (1.0-dataclass.y) % arma::log(1.0-normcdf_Z),
+                        1 );
 }
 
 double BVS_dMVP::logLikelihood(
@@ -583,6 +588,8 @@ void BVS_dMVP::gibbs_betas(
         arma::uvec singleIdx_k = {k};
         betas(VS_IN_k, singleIdx_k) = beta_mask;
     }
+
+    // RhoU = createRhoU(U ,  SigmaRho); // no need, because it's not used before next update in gibbs_SigmaRho()
 
     // return logP;
 }
@@ -721,7 +728,7 @@ double BVS_dMVP::logP_gibbs_betaK(
 
 void BVS_dMVP::gibbs_SigmaRho(
     arma::mat& SigmaRho,
-    const double psi,
+    // const double psi,
     arma::mat& RhoU,
     const double nu,
     double& logP_SigmaRho,
@@ -738,7 +745,7 @@ void BVS_dMVP::gibbs_SigmaRho(
 
     arma::mat U = Z - dataclass.X * betas;
     arma::mat Sigma = U.t() * U;
-    Sigma.diag() += psi;
+    // Sigma.diag() += psi;
 
     double thisSigmaTT;
     arma::uvec conditioninIndexes;
@@ -803,9 +810,10 @@ void BVS_dMVP::gibbs_SigmaRho(
     logP_SigmaRho = logP;
 }
 
+/*
 double BVS_dMVP::logPSigmaRho(
     const arma::mat& SigmaRho,
-    const double psi,
+    const unsigned int N,
     const double nu)
 {
     double logP = 0.;
@@ -826,7 +834,7 @@ double BVS_dMVP::logPSigmaRho(
         singleIdx_k(0) = k;
 
         // start computing interesting things
-        thisSigmaTT = psi; //Sigma(k,k);
+        thisSigmaTT = 1.0;// psi; //Sigma(k,k);
 
         nConditioninIndexes = k;
         conditioninIndexes.zeros( nConditioninIndexes );
@@ -834,7 +842,7 @@ double BVS_dMVP::logPSigmaRho(
         if( nConditioninIndexes > 0 )
         {
             conditioninIndexes = arma::regspace<arma::uvec>(0, k-1);
-            rhoVar = (1./psi) * arma::eye(nConditioninIndexes,nConditioninIndexes);
+            rhoVar = arma::eye(nConditioninIndexes,nConditioninIndexes);
             rhoMean = arma::zeros<arma::rowvec>(nConditioninIndexes); // off-diagonals are zeros
         }
 
@@ -842,7 +850,8 @@ double BVS_dMVP::logPSigmaRho(
 
         // Compute parameters
         // a = 0.5 * ( N + nu - L + nConditioninIndexes + 1. ) ;
-        a = 0.5 * ( nu - L + 2*nConditioninIndexes + 1. ) ;
+        // a = 0.5 * ( nu - L + 2*nConditioninIndexes + 1. ) ;
+        a = 0.5 * (double)N + (double)k;
         b = 0.5 * thisSigmaTT ;
 
         logP += BVS_subfunc::logPDFIGamma( SigmaRho(k,k), a, b );
@@ -858,6 +867,7 @@ double BVS_dMVP::logPSigmaRho(
 
     return logP;
 }
+*/
 
 arma::mat BVS_dMVP::createRhoU(
     const arma::mat& U,
@@ -881,35 +891,6 @@ arma::mat BVS_dMVP::createRhoU(
     return RhoU;
 }
 
-// MH update, Normal in the log-space as tau is positive (with gamma prior)
-void BVS_dMVP::samplePsi(
-    double& psi,
-    const double psiA,
-    const double psiB,
-    const double nu,
-    double& logP_psi,
-    double& logP_SigmaRho,
-    const arma::mat& SigmaRho
-)
-{
-    double var_Psiproposal = 1.0;//2.38;
-    double proposedPsi = std::exp( std::log(psi) + R::rnorm(0.0, var_Psiproposal) );
-
-    double proposedPsiPrior = BVS_subfunc::logPDFGamma( proposedPsi, psiA, psiB );
-    // TODO: the following should be the model's likelihood
-    double proposedSigmaRhoPrior = logPSigmaRho( SigmaRho, proposedPsi, nu);
-
-    double logAccProb = (proposedPsiPrior + proposedSigmaRhoPrior) - (logP_psi + logP_SigmaRho);
-
-    if( std::log(R::runif(0,1)) < logAccProb )
-    {
-        psi = proposedPsi;
-        logP_psi = proposedPsiPrior;
-        logP_SigmaRho = proposedSigmaRhoPrior;
-
-        // ++Psiacc_count;
-    }
-}
 
 /*
 void BVS_dMVP::sampleZ(
@@ -954,15 +935,15 @@ void BVS_dMVP::sampleZ(
     arma::mat& mutantZ,
     arma::mat& mutantD,
     const arma::mat& betas,
-    const arma::mat& SigmaRho,
+    const arma::mat& Psi,
     const DataClass &dataclass
 )
 {
     unsigned int N = mutantZ.n_rows;
     unsigned int L = mutantZ.n_cols;
 
-    arma::mat Psi = arma::zeros<arma::mat>(L, L);
-    updatePsi( SigmaRho, Psi );
+    // arma::mat Psi = arma::zeros<arma::mat>(L, L);
+    // updatePsi( SigmaRho, Psi );
     arma::mat D = arma::sqrt(arma::diagmat(Psi));
 
     // std::cout << "sampleZ(): D=\n" << D << "\n Psi=\n" << Psi << "\n";
@@ -994,44 +975,46 @@ void BVS_dMVP::sampleZ(
             // if( (dataclass.y(i, k) == 1. && Z0(i, k) > 0) || (dataclass.y(i, k) == 0. && Z0(i, k) < 0) )
             // // if( (dataclass.y(i, k) == 1. && Mus(i, k) > 0) || (dataclass.y(i, k) == 0. && Mus(i, k) < 0) )
             // {
-                arma::uvec singleIdx_i = {i};
+            arma::uvec singleIdx_i = {i};
 
-                //std::cout << "Debug sampleZ042";
-                arma::mat invR_excludeIdx_k;
-                if( !arma::inv_sympd( invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k) ) )
-                {
-                    arma::inv(invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k), arma::inv_opts::allow_approx);
-                }
+            //std::cout << "Debug sampleZ042";
+            arma::mat invR_excludeIdx_k;
+            if( !arma::inv_sympd( invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k) ) )
+            {
+                arma::inv(invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k), arma::inv_opts::allow_approx);
+            }
 
-                double mu_ik = Mus(i,k) +
-                               arma::as_scalar(
-                                   RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k *
-                                   (Z0(singleIdx_i, excludeIdx_k) - Mus(singleIdx_i, excludeIdx_k) ).t()
+            double mu_ik = Mus(i,k) +
+                           arma::as_scalar(
+                               RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k *
+                               (Z0(singleIdx_i, excludeIdx_k) - Mus(singleIdx_i, excludeIdx_k) ).t()
+                           );
+
+            double sigmaZ_ik = 1.0 - arma::as_scalar(
+                                   RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k * RR.submat(excludeIdx_k, singleIdx_k)
                                );
-
-                double sigmaZ_ik = 1.0 - arma::as_scalar(
-                                       RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k * RR.submat(excludeIdx_k, singleIdx_k)
-                                   );
-                sigmaZ_ik = std::sqrt( std::max(1.0e-16, sigmaZ_ik) );
-                /*
-                if( dataclass.y(i, k) == 1. && mu_ik > 0.)
-                {
-                    Z(i, k) = BVS_subfunc::randTruncNorm( mu_ik, sigmaZ_ik, 0., 1.0e+6);
-                }
-                else if( dataclass.y(i, k) == 0. && mu_ik < 0.)
-                {
-                    Z(i, k) = BVS_subfunc::randTruncNorm( mu_ik, sigmaZ_ik, -1.0e+6, 0. );
-                }
-                */
-                Z(i,k) = zbinprobit(dataclass.y(i, k), mu_ik, sigmaZ_ik);
+            sigmaZ_ik = std::sqrt( std::max(1.0e-16, sigmaZ_ik) );
+            /*
+            if( dataclass.y(i, k) == 1. && mu_ik > 0.)
+            {
+                Z(i, k) = BVS_subfunc::randTruncNorm( mu_ik, sigmaZ_ik, 0., 1.0e+6);
+            }
+            else if( dataclass.y(i, k) == 0. && mu_ik < 0.)
+            {
+                Z(i, k) = BVS_subfunc::randTruncNorm( mu_ik, sigmaZ_ik, -1.0e+6, 0. );
+            }
+            */
+            Z(i,k) = zbinprobit(dataclass.y(i, k), mu_ik, sigmaZ_ik);
 
             // }
         }
 
         mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
+        // mutantD(k, k) = D(k, k);
         // std::cout << "...k=" << k << "; mutantD(k, k)=" << mutantD(k, k) << "; Rinv(k, k)=" << Rinv(k, k)  << "\n";
     }
 
+    // transform to Z in the reparametrized space
     mutantZ = Z * mutantD;
 }
 
@@ -1062,7 +1045,7 @@ double BVS_dMVP::zbinprobit(
 )
 {
 
-    double u = R::runif(0., 1.); 
+    double u = R::runif(0., 1.);
     double cd = arma::normcdf( -m / sigma );
 
     if(cd > 1.0-lowerbound0)
@@ -1073,7 +1056,7 @@ double BVS_dMVP::zbinprobit(
     {
         cd = lowerbound0;
     }
-    
+
     double pu = (u * cd) * (1.0 - 2.0 * y) + (u + cd) * y;
     double z = m + sigma * R::qnorm(pu, 0., 1., true, false);
 
@@ -1180,7 +1163,7 @@ void BVS_dMVP::updatePsi(
         Psi = Psi0;
         */
 
-    std::cout << "updatePsi()-Eigen: Psi=\n" << Psi << "\n";
+        std::cout << "updatePsi()-Eigen: Psi=\n" << Psi << "\n";
     }
     // generate symmetric matrix by reflecting the lower triangle to the upper triangle
     // Psi = arma::symmatl(Psi);

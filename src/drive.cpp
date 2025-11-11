@@ -2,6 +2,7 @@
 
 
 #include "BVS_gaussian.h"
+#include "BVS_probit.h"
 #include "BVS_weibull.h"
 #include "BVS_dirichlet.h"
 #include "BVS_HRR.h"
@@ -340,7 +341,27 @@ Rcpp::List run_mcmc(
         break;
 
     case Family_Type::probit :
-        ::Rf_error("Not yet implemented!");
+        BVS_probit::mcmc(
+            nIter,
+            burnin,
+            thin,
+            tau0Sq,
+            tauSq,
+            betas,
+            gammas,
+            gammaProposal,
+            gammaSampler,
+            hyperpar,
+            dataclass,
+
+            beta_mcmc,
+            beta_post,
+            gamma_mcmc,
+            gamma_post,
+            gamma_acc_count,
+            loglikelihood_mcmc,
+            tauSq_mcmc
+        );
         break;
 
     case Family_Type::poisson :

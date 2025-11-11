@@ -81,13 +81,13 @@ private:
         const arma::mat& RhoU,
 
         const arma::mat& Z,
-    const arma::mat& D,
+        const arma::mat& D,
         const DataClass &dataclass
     );
 
     static void gibbs_SigmaRho(
         arma::mat& SigmaRho,
-        const double psi,
+        // const double psi,
         arma::mat& RhoU,
         const double nu,
         double& logP_SigmaRho,
@@ -95,10 +95,10 @@ private:
         const DataClass& dataclass,
         const arma::mat& betas
     );
-
+    /*
     static double logPSigmaRho(
         const arma::mat& SigmaRho,
-        const double psi,
+        const unsigned int N,
         const double nu
     );
 
@@ -111,6 +111,7 @@ private:
         double& logP_SigmaRho,
         const arma::mat& SigmaRho
     );
+    */
 
     static arma::mat createRhoU(
         const arma::mat& U,
@@ -163,7 +164,7 @@ private:
         arma::mat& mutantZ,
         arma::mat& mutantD,
         const arma::mat& betas,
-        const arma::mat& SigmaRho,
+        const arma::mat& Psi,
         const DataClass &dataclass
     );
 
@@ -178,7 +179,7 @@ private:
         const double sigma
     );
 
-    static void updatePsi( 
+    static void updatePsi(
         const arma::mat& SigmaRho,
         arma::mat& Psi
     );
