@@ -66,12 +66,12 @@ void BVS_iMVP::mcmc(
 
     double tauSq = 1.0;
     double logP_tau = BVS_subfunc::logPDFIGamma( tauSq, hyperpar.tauA, hyperpar.tauB );
-    double log_likelihood = logLikelihood( Z, gammas, betas, tauSq, dataclass );
+    double log_likelihood = logLikelihood( betas, dataclass );
 
     // std::cout << "...debug13\n";
     arma::vec loglik = arma::zeros<arma::vec>(N);
     loglikelihood_conditional(
-        Z,
+        betas,
         dataclass,
         loglik
     );
@@ -136,7 +136,7 @@ void BVS_iMVP::mcmc(
         // update latent response variables
         sampleZ(Z, betas,  dataclass);
 
-        log_likelihood = logLikelihood( Z, gammas, betas, tauSq, dataclass);
+        log_likelihood = logLikelihood( betas, dataclass);
 
         // if(std::isnan(log_likelihood)){
         //     std::cout << "...main mcmc() Z=" << Z.t() <<
@@ -160,7 +160,7 @@ void BVS_iMVP::mcmc(
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
             loglikelihood_conditional(
-                Z,
+                betas,
                 dataclass,
                 loglik
             );
@@ -177,16 +177,9 @@ void BVS_iMVP::mcmc(
 
 // joint likelihood f(Y,Z|...)
 double BVS_iMVP::logLikelihood(
-    const arma::mat& Z,
-    const arma::umat& gammas,
     const arma::mat& betas,
-    const double tauSq,
     const DataClass &dataclass)
 {
-    // dimensions
-    unsigned int N = dataclass.X.n_rows;
-    unsigned int L = dataclass.y.n_cols;
-
     double logP = 0.;
 
     //Option1: The following uses f(Y,Z|gammas) = f(Y|Z)f(Z|gammas)
@@ -271,19 +264,20 @@ double BVS_iMVP::logLikelihood(
 
 // individual loglikelihoods f(Y|Z)
 void BVS_iMVP::loglikelihood_conditional(
-    const arma::mat& Z,
+    const arma::mat& betas,
     const DataClass &dataclass,
     arma::vec& loglik)
 {
 
-    // loglik.zeros(N); // RESET THE WHOLE VECTOR !!!
+    
+    arma::mat normcdf_Z = arma::normcdf(dataclass.X * betas);
 
-    // if(Z.has_nan()){
-    //     std::cout << "...loglikelihood_conditional() Z=\n" << Z;
-    // }
-    loglik =
-        arma::sum( dataclass.y % arma::log(arma::normcdf(Z))  +
-                   (1.0-dataclass.y) % arma::log(1.0-arma::normcdf(Z)), 1 );
+    // fix numerical issues if log(0)
+    normcdf_Z.elem(arma::find(normcdf_Z > 1.0-lowerbound0)).fill(1.0-lowerbound0);
+    normcdf_Z.elem(arma::find(normcdf_Z < lowerbound0)).fill(lowerbound0);
+    loglik = arma::sum( dataclass.y % arma::log(normcdf_Z) +
+                        (1.0-dataclass.y) % arma::log(1.0-normcdf_Z),
+                        1 );
 
 }
 
@@ -375,7 +369,7 @@ void BVS_iMVP::sampleGamma(
     // const double tau0Sq,
     const double tauSq,
 
-    arma::mat& Z,
+    const arma::mat& Z,
     const DataClass &dataclass)
 {
 
@@ -451,12 +445,9 @@ void BVS_iMVP::sampleGamma(
     );
 
     // std::cout << "...debug26\n";
-    // TODO: Do we need proposedZ for proposedLikelihood?
-    arma::mat proposedZ = Z;
-    // sampleZ(proposedZ, proposedBeta,  dataclass);
 
     // compute logLikelihoodRatio
-    double proposedLikelihood = logLikelihood( proposedZ, proposedGamma, proposedBeta, tauSq, dataclass );
+    double proposedLikelihood = logLikelihood( proposedBeta, dataclass );
 
     // std::cout << "...debug27\n";
     double logLikelihoodRatio = proposedLikelihood - log_likelihood;
@@ -466,7 +457,7 @@ void BVS_iMVP::sampleGamma(
                         logLikelihoodRatio +
                         logProposalRatio;
 
-    // std::cout << "...debug logAccProb=" << logAccProb <<
+    // // std::cout << "...debug logAccProb=" << logAccProb <<
     // "; proposedLikelihood=" << proposedLikelihood <<
     // "; log_likelihood=" << log_likelihood <<
     // "; logProposalGammaRatio=" << logProposalGammaRatio <<
@@ -477,8 +468,8 @@ void BVS_iMVP::sampleGamma(
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
-        Z = proposedZ;
         betas = proposedBeta;
+        // sampleZ(Z, betas,  dataclass);
 
         ++gamma_acc_count;
     }
@@ -523,7 +514,7 @@ void BVS_iMVP::sampleTau(
 
     // double proposedTauPrior = logPTau( proposedTau );
     double proposedTauPrior = BVS_subfunc::logPDFIGamma( proposedTau, hyperpar.tauA, hyperpar.tauB );
-    double proposedLikelihood = logLikelihood( Z, gammas, betas, proposedTau, dataclass );
+    double proposedLikelihood = logLikelihood( betas, dataclass );
 
     double logAccProb = (proposedTauPrior + proposedLikelihood) - (logP_tau + log_likelihood);
 

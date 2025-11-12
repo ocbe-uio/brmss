@@ -37,16 +37,13 @@ public:
 private:
 
     static void loglikelihood_conditional(
-        const arma::mat& Z,
+        const arma::mat& betas,
         const DataClass &dataclass,
         arma::vec& loglik
     );
 
     static double logLikelihood(
-        const arma::mat& Z,
-        const arma::umat& gammas,
         const arma::mat& betas,
-        const double tauSq,
         const DataClass &dataclass
     );
 
@@ -62,7 +59,7 @@ private:
         // const double tau0Sq,
         const double tauSq,
 
-        arma::mat& Z,
+        const arma::mat& Z,
         const DataClass &dataclass
     );
 
