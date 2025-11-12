@@ -976,12 +976,12 @@ void BVS_dMVP::sampleZ(
 
     // arma::mat Psi = arma::zeros<arma::mat>(L, L);
     // updatePsi( SigmaRho, Psi );
-    arma::mat D = arma::sqrt(arma::diagmat(Psi));
+    arma::vec dinv = 1.0 / arma::sqrt(Psi.diag());
+    arma::mat Dinv = arma::diagmat(dinv);
 
-    // std::cout << "sampleZ(): D=\n" << D << "\n Psi=\n" << Psi << "\n";
-    arma::mat Dinv = arma::inv_sympd( D );
     // std::cout << "...Dinv=\n" << Dinv << "\n";
     arma::mat RR = Dinv * Psi * Dinv;
+    RR = 0.5 * (RR + RR.t()); // enforce symmetry numerically
     arma::mat Rinv;
     if( !arma::inv_sympd( Rinv, RR ) )
     {
@@ -994,38 +994,45 @@ void BVS_dMVP::sampleZ(
 
     arma::mat Z = arma::zeros<arma::mat>(N, L); // reset all entries
     arma::uvec singleIdx_k;
+    arma::uvec all_idx = arma::linspace<arma::uvec>(0, L-1, L);
+
 
     for( unsigned int k=0; k<L; ++k)
     {
         // Z.col(k) = zbinprobit( dataclass.y.col(k), Mus.col(k) );
 
         arma::uvec singleIdx_k = {k};
-        arma::uvec excludeIdx_k = arma::linspace<arma::uvec>(0, L-1, L);
+        arma::uvec excludeIdx_k = all_idx;
         excludeIdx_k.shed_row(k);
+
+        arma::mat Rmm = RR.submat(excludeIdx_k, excludeIdx_k);
+        arma::mat chol_Rmm;
+        if(!arma::chol(chol_Rmm, Rmm, "lower"))
+        {
+            arma::mat Rmm_jit = Rmm + 1.0e-10 * arma::eye<arma::mat>(Rmm.n_rows, Rmm.n_cols);
+            if (!arma::chol(chol_Rmm, Rmm_jit, "lower")) {
+                throw std::runtime_error("Cholesky failed for R_{-k,-k}");
+            }
+        }
+
+        arma::rowvec Rkm = RR.submat(singleIdx_k, excludeIdx_k); 
+        arma::vec    Rmk = RR.submat(excludeIdx_k, singleIdx_k); 
+        // Solve R_{-k,-k}^{-1} R_{-k,k}
+        arma::vec sol2 = arma::solve(arma::trimatl(chol_Rmm), Rmk, arma::solve_opts::fast);
+        sol2 = arma::solve(arma::trimatu(chol_Rmm.t()), sol2, arma::solve_opts::fast);
+
+        double var_k = 1.0 - arma::as_scalar(Rkm * sol2);
+        var_k = std::max(1.0e-16, var_k);
+        double sd_k  = std::sqrt(var_k);
+
         for( unsigned int i=0; i<N; ++i)
         {
-            // if( (dataclass.y(i, k) == 1. && Z0(i, k) > 0) || (dataclass.y(i, k) == 0. && Z0(i, k) < 0) )
-            // // if( (dataclass.y(i, k) == 1. && Mus(i, k) > 0) || (dataclass.y(i, k) == 0. && Mus(i, k) < 0) )
-            // {
             arma::uvec singleIdx_i = {i};
+            arma::vec rhs = (Z0.submat(singleIdx_i, excludeIdx_k).t() - Mus.submat(singleIdx_i, excludeIdx_k).t());
+            arma::vec sol = arma::solve(arma::trimatl(chol_Rmm), rhs, arma::solve_opts::fast);
+            sol = arma::solve(arma::trimatu(chol_Rmm.t()), sol, arma::solve_opts::fast);
 
-            //std::cout << "Debug sampleZ042";
-            arma::mat invR_excludeIdx_k;
-            if( !arma::inv_sympd( invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k) ) )
-            {
-                arma::inv(invR_excludeIdx_k, RR.submat(excludeIdx_k, excludeIdx_k), arma::inv_opts::allow_approx);
-            }
-
-            double mu_ik = Mus(i,k) +
-                           arma::as_scalar(
-                               RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k *
-                               (Z0(singleIdx_i, excludeIdx_k) - Mus(singleIdx_i, excludeIdx_k) ).t()
-                           );
-
-            double sigmaZ_ik = 1.0 - arma::as_scalar(
-                                   RR.submat(singleIdx_k, excludeIdx_k) * invR_excludeIdx_k * RR.submat(excludeIdx_k, singleIdx_k)
-                               );
-            sigmaZ_ik = std::sqrt( std::max(1.0e-16, sigmaZ_ik) );
+            double mu_ik = Mus(i,k) + arma::as_scalar( Rkm * sol );
             /*
             if( dataclass.y(i, k) == 1. && mu_ik > 0.)
             {
@@ -1036,7 +1043,7 @@ void BVS_dMVP::sampleZ(
                 Z(i, k) = BVS_subfunc::randTruncNorm( mu_ik, sigmaZ_ik, -1.0e+6, 0. );
             }
             */
-            Z(i,k) = zbinprobit(dataclass.y(i, k), mu_ik, sigmaZ_ik);
+            Z(i,k) = zbinprobit(dataclass.y(i, k), mu_ik, sd_k);
 
             // }
         }

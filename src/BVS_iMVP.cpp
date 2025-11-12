@@ -406,6 +406,8 @@ double BVS_iMVP::gibbs_betaK(
     arma::uvec singleIdx_k = {k};
     betas(VS_IN_k, singleIdx_k) = beta_mask;
 
+    return logP;
+
 }
 
 double BVS_iMVP::logP_gibbs_betaK(
