@@ -568,22 +568,15 @@ void BVS_dMVP::gibbs_betas(
     arma::mat y_tilde = Z - RhoU ;
     y_tilde.each_row() /= (SigmaRho.diag().t()) ; // divide each col by the corresponding element of sigma
 
-    arma::uvec xi = arma::linspace<arma::uvec>(0, L-1, L);
     arma::vec xtxMultiplier = arma::zeros<arma::vec>(L);
 
     for( unsigned int k=0; k<L-1; ++k)
     {
-        xtxMultiplier(xi(k)) = 0;
         for(unsigned int l=k+1 ; l<L ; ++l)
-        // {
-        //     xtxMultiplier(k) += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
-        //     y_tilde.col(k) -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
-        //                       ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
-        // }
         {
-            xtxMultiplier(xi(k)) += pow( SigmaRho(xi(l),xi(k)),2) /  SigmaRho(xi(l),xi(l));
-            y_tilde.col(xi(k)) -= (  SigmaRho(xi(l),xi(k)) /  SigmaRho(xi(l),xi(l)) ) * 
-                ( U.col(xi(l)) - RhoU.col(xi(l)) +  SigmaRho(xi(l),xi(k)) * ( U.col(xi(k)) - Z.col(xi(k)) ) );
+            xtxMultiplier(k) += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
+            y_tilde.col(k) -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
+                              ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
         }
     }
 
@@ -666,18 +659,20 @@ double BVS_dMVP::gibbs_betaK(
 
     double xtxMultiplier = 0.;
     arma::uvec xi = arma::linspace<arma::uvec>(0, L-1, L);
-    unsigned int k_idx = arma::as_scalar( arma::find( xi == k , 1 ) );
-    for(unsigned int l=k_idx+1 ; l<L ; ++l)
-    // {
-    //     xtxMultiplier += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
-    //     y_tilde -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
-    //                ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
-    // }
+    // unsigned int k_idx = arma::as_scalar( arma::find( xi == k , 1 ) );
+    for(unsigned int l=k+1 ; l<L ; ++l)
+    {
+        xtxMultiplier += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
+        y_tilde -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
+                   ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
+    }
+    /*
     {
         xtxMultiplier += pow( SigmaRho(xi(l),k),2) /  SigmaRho(xi(l),xi(l));
         y_tilde -= (  SigmaRho(xi(l),k) /  SigmaRho(xi(l),xi(l)) ) * 
             ( U.col(xi(l)) - RhoU.col(xi(l)) +  SigmaRho(xi(l),k) * ( U.col(k) - Z.col(k) ) );
     }
+    */
 
 
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
@@ -813,7 +808,7 @@ void BVS_dMVP::gibbs_SigmaRho(
         // *** Diagonal Element
 
         // Compute parameters
-        a = 0.5 * (double)N + (double)k;
+        a = 0.5 * N + k + 1.0; // plus 1.0 due to C++ indexing k from 0
         // a = 0.5 * ( N + nu - L + 2*nConditioninIndexes + 1. ) ;
         b = 0.5 * thisSigmaTT ;
         // if(b <= 0 )
@@ -1113,17 +1108,13 @@ void BVS_dMVP::updatePsi(
 {
     unsigned int L = SigmaRho.n_rows;
     Psi.zeros(L, L); // RESET THE WHOLE MATRIX !!!
-    // arma::mat Psi = arma::zeros<arma::mat>( nOutcomes, nOutcomes );
-
-    // TODO: check the following again!
+    /*
     Psi(0, 0) = SigmaRho(0, 0);
     Psi(1, 0) = SigmaRho(1, 0) * Psi(0, 0);
     Psi(0, 1) = Psi(1, 0);
     Psi(1, 1) = SigmaRho(1, 1);
     Psi(1, 1) += SigmaRho(1, 0) * SigmaRho(1, 0) * Psi(0, 0);
 
-    // Computing Psi(2, 0) and Psi(2, 1) might fix some missing updates when coming to Psi(j,j) before updating Psi(j,k)
-    // The following calculation can be included in the for-loop starting with j=2 below
     Psi(2, 0) += SigmaRho(2, 0) * Psi(0, 0);
     Psi(2, 0) += SigmaRho(2, 1) * Psi(1, 0);
     Psi(0, 2) = Psi(2, 0);
@@ -1135,10 +1126,8 @@ void BVS_dMVP::updatePsi(
     Psi(2, 2) = SigmaRho(2, 2);
     Psi(2, 2) += SigmaRho(2, 0) * SigmaRho(2, 0) * Psi(0, 0) +
                  SigmaRho(2, 1) * SigmaRho(2, 1) * Psi(1, 1) +
-                 //2.0 *
-                 SigmaRho(2, 0) * SigmaRho(2, 1) * Psi(1, 0);
+                 2.0 * SigmaRho(2, 0) * SigmaRho(2, 1) * Psi(1, 0);
 
-    // not able to use omp due to dependent variables
     for ( unsigned int j=3; j<L; ++j)
     {
         for ( unsigned int i=0; i<j; ++i )
@@ -1164,11 +1153,25 @@ void BVS_dMVP::updatePsi(
         {
             for ( unsigned int k=0; k<l; ++k )
             {
-                Psi(j, j) += //2.0 *
-                    SigmaRho(j, k) * SigmaRho(j, l) * Psi(l, k);
+                Psi(j, j) += 2.0 * SigmaRho(j, k) * SigmaRho(j, l) * Psi(l, k);
             }
         }
+    }
+    */
+    Psi(0, 0) = SigmaRho(0, 0);
 
+    for (unsigned int j = 1; j < L; ++j) {
+        auto Psi_sub = Psi.submat(0, 0, j - 1, j - 1); 
+        auto v = SigmaRho.submat(j, 0, j, j - 1); 
+
+        // off-diagonals
+        arma::rowvec s = v * Psi_sub;
+        Psi.submat(j, 0, j, j - 1) = s;    
+        Psi.submat(0, j, j - 1, j) = s.t(); 
+
+        // diagonal
+        double diag = SigmaRho(j, j) + arma::as_scalar(s * v.t());
+        Psi(j, j) = diag;
     }
 
     // std::cout << "updatePsi(): Psi=\n" << Psi << "\n";

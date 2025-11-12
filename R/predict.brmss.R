@@ -28,7 +28,7 @@
 #' dat <- simData(n, p, model = "weibull")
 #'
 #' # run a Bayesian brmss model
-#' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 100, burnin = 10)
+#' fit <- brmss(dat$y, dat$x, family = "weibull", nIter = 10, burnin = 1)
 #'
 #' pred.survival <- predict(fit, dat, newdata = dat, times = c(1, 3, 5))
 #'
