@@ -5,7 +5,7 @@
 #'
 #' @name simData
 #'
-#' @importFrom stats rbinom rnorm runif rexp rgamma dnorm
+#' @importFrom stats rbinom rnorm runif rexp rgamma pnorm
 #'
 #' @param n number of subjects
 #' @param p number of covariates in each cluster
