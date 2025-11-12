@@ -56,7 +56,7 @@ private:
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        // const double tau0Sq,
+        const double tau0Sq,
         const double tauSq,
 
         const arma::mat& Z,
@@ -89,7 +89,7 @@ private:
         const unsigned int k,
         arma::mat& betas,
         const arma::umat& gammas,
-        // const double tau0Sq,
+        const double tau0Sq,
         const double tauSq,
         const arma::mat& Z,
         const DataClass &dataclass
@@ -107,6 +107,7 @@ private:
         arma::mat& betas,
         const arma::umat& gammas,
         // const arma::vec& sigmaSq,
+        const double tau0Sq,
         const double tauSq,
         const arma::mat& Z,
         const DataClass &dataclass
@@ -117,7 +118,7 @@ private:
         const arma::mat& betas,
         const DataClass &dataclass
     );
-
+    /*
     static void sampleTau(
         double& tauSq,
         double& logP_tau,
@@ -128,7 +129,7 @@ private:
         const arma::umat& gammas,
         const arma::mat& betas
     );
-
+    */
     static arma::vec zbinprobit(
         const arma::vec& x,
         const arma::vec& m

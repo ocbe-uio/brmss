@@ -184,6 +184,8 @@ private:
         arma::mat& Psi
     );
 
+    static void approx_sympd(arma::mat& x);
+
 };
 
 

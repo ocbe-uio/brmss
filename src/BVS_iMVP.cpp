@@ -64,6 +64,7 @@ void BVS_iMVP::mcmc(
         }
     }
 
+    double tau0Sq = 1.0;
     double tauSq = 1.0;
     double logP_tau = BVS_subfunc::logPDFIGamma( tauSq, hyperpar.tauA, hyperpar.tauB );
     double log_likelihood = logLikelihood( betas, dataclass );
@@ -99,7 +100,9 @@ void BVS_iMVP::mcmc(
         // std::cout << "...debug14\n";
 
         // update quantities based on the new betas
-        sampleTau( tauSq, logP_tau, log_likelihood, Z, hyperpar, dataclass, gammas, betas);
+        // sampleTau( tauSq, logP_tau, log_likelihood, Z, hyperpar, dataclass, gammas, betas);
+        tauSq = sampleTau(hyperpar.tauA, hyperpar.tauB, betas.submat(1,0,p-1,L-1));
+        tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
         // /*testing*/tauSq = 1.0;
 
 
@@ -113,7 +116,7 @@ void BVS_iMVP::mcmc(
             log_likelihood,
             hyperpar,
             betas,
-            // tau0Sq,
+            tau0Sq,
             tauSq,
             Z,
             dataclass
@@ -127,7 +130,7 @@ void BVS_iMVP::mcmc(
             betas,
             gammas,
             // sigmaSq,
-            // tau0Sq,
+            tau0Sq,
             tauSq,
             Z,
             dataclass
@@ -286,7 +289,7 @@ void BVS_iMVP::gibbs_betas(
     arma::mat& betas,
     const arma::umat& gammas,
     // const arma::vec& sigmaSq,
-    // const double tau0Sq,
+    const double tau0Sq,
     const double tauSq,
     const arma::mat& Z,
     const DataClass &dataclass)
@@ -304,7 +307,7 @@ void BVS_iMVP::gibbs_betas(
         arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
         arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
-        diag_elements[0] = 1.;// /tau0Sq;
+        diag_elements[0] = 1./tau0Sq;
 
         arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
         arma::mat W;
@@ -326,7 +329,7 @@ void BVS_iMVP::gibbs_betaK(
     const unsigned int k,
     arma::mat& betas,
     const arma::umat& gammas,
-    // const double tau0Sq,
+    const double tau0Sq,
     const double tauSq,
     const arma::mat& Z,
     const DataClass &dataclass)
@@ -339,7 +342,7 @@ void BVS_iMVP::gibbs_betaK(
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
     arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
-    diag_elements[0] = 1.;// /tau0Sq;
+    diag_elements[0] = 1./tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
     arma::mat W;
@@ -366,7 +369,7 @@ void BVS_iMVP::sampleGamma(
     const hyperparClass& hyperpar,
 
     arma::mat& betas,
-    // const double tau0Sq,
+    const double tau0Sq,
     const double tauSq,
 
     const arma::mat& Z,
@@ -438,7 +441,7 @@ void BVS_iMVP::sampleGamma(
         componentUpdateIdx,
         proposedBeta,
         proposedGamma,
-        // tau0Sq,
+        tau0Sq,
         tauSq,
         Z,
         dataclass
@@ -498,6 +501,7 @@ void BVS_iMVP::sampleGamma(
 }
 
 // random walk MH sampler; no full conditional due to integrated out beta
+/*
 void BVS_iMVP::sampleTau(
     double& tauSq,
     double& logP_tau,
@@ -527,6 +531,7 @@ void BVS_iMVP::sampleTau(
         // ++tau_acc_count;
     }
 }
+*/
 
 /*
 void BVS_iMVP::sampleZ(

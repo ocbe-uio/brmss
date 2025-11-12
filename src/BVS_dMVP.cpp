@@ -553,15 +553,22 @@ void BVS_dMVP::gibbs_betas(
     arma::mat y_tilde = Z - RhoU ;
     y_tilde.each_row() /= (SigmaRho.diag().t()) ; // divide each col by the corresponding element of sigma
 
+    arma::uvec xi = arma::linspace<arma::uvec>(0, L-1, L);
     arma::vec xtxMultiplier = arma::zeros<arma::vec>(L);
 
     for( unsigned int k=0; k<L-1; ++k)
     {
+        xtxMultiplier(xi(k)) = 0;
         for(unsigned int l=k+1 ; l<L ; ++l)
+        // {
+        //     xtxMultiplier(k) += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
+        //     y_tilde.col(k) -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
+        //                       ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
+        // }
         {
-            xtxMultiplier(k) += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
-            y_tilde.col(k) -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
-                              ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
+            xtxMultiplier(xi(k)) += pow( SigmaRho(xi(l),xi(k)),2) /  SigmaRho(xi(l),xi(l));
+            y_tilde.col(xi(k)) -= (  SigmaRho(xi(l),xi(k)) /  SigmaRho(xi(l),xi(l)) ) * 
+                ( U.col(xi(l)) - RhoU.col(xi(l)) +  SigmaRho(xi(l),xi(k)) * ( U.col(xi(k)) - Z.col(xi(k)) ) );
         }
     }
 
@@ -641,13 +648,20 @@ double BVS_dMVP::gibbs_betaK(
     y_tilde /= SigmaRho(k,k) ;
 
     double xtxMultiplier = 0.;
-
-    for(unsigned int l=k+1 ; l<L ; ++l)
+    arma::uvec xi = arma::linspace<arma::uvec>(0, L-1, L);
+    unsigned int k_idx = arma::as_scalar( arma::find( xi == k , 1 ) );
+    for(unsigned int l=k_idx+1 ; l<L ; ++l)
+    // {
+    //     xtxMultiplier += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
+    //     y_tilde -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
+    //                ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
+    // }
     {
-        xtxMultiplier += SigmaRho(l,k) * SigmaRho(l,k) /  SigmaRho(l,l);
-        y_tilde -= (  SigmaRho(l,k) /  SigmaRho(l,l) ) *
-                   ( U.col(l) - RhoU.col(l) +  SigmaRho(l,k) * ( U.col(k) - Z.col(k) ) );
+        xtxMultiplier += pow( SigmaRho(xi(l),k),2) /  SigmaRho(xi(l),xi(l));
+        y_tilde -= (  SigmaRho(xi(l),k) /  SigmaRho(xi(l),xi(l)) ) * 
+            ( U.col(xi(l)) - RhoU.col(xi(l)) +  SigmaRho(xi(l),k) * ( U.col(k) - Z.col(k) ) );
     }
+
 
     arma::uvec VS_IN_k = arma::find(gammas.col(k)); // include intercept
 
@@ -745,7 +759,7 @@ void BVS_dMVP::gibbs_SigmaRho(
 
     arma::mat U = Z - dataclass.X * betas;
     arma::mat Sigma = U.t() * U;
-    // Sigma.diag() += psi;
+    Sigma.diag() += 1.0;
 
     double thisSigmaTT;
     arma::uvec conditioninIndexes;
@@ -781,8 +795,13 @@ void BVS_dMVP::gibbs_SigmaRho(
         // *** Diagonal Element
 
         // Compute parameters
-        a = 0.5 * (double)N + (double)k;
+        // a = 0.5 * (double)N + (double)k;
+        a = 0.5 * ( N + nu - L + 2*nConditioninIndexes + 1. ) ;
         b = 0.5 * thisSigmaTT ;
+        // if(b <= 0 )
+        // {
+        //     ::Rf_error(" Negative parameter in gibbs_SigmaRho b");
+        // }
 
         SigmaRho(k,k) = BVS_subfunc::randIGamma( a, b );
 
@@ -1009,6 +1028,11 @@ void BVS_dMVP::sampleZ(
             // }
         }
 
+        // if(Rinv(k, k) <= 0 )
+        // {
+        //     ::Rf_error(" Negative parameter in sampleZ Rinv(k, k)");
+        // }
+
         mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
         // mutantD(k, k) = D(k, k);
         // std::cout << "...k=" << k << "; mutantD(k, k)=" << mutantD(k, k) << "; Rinv(k, k)=" << Rinv(k, k)  << "\n";
@@ -1169,4 +1193,36 @@ void BVS_dMVP::updatePsi(
     // Psi = arma::symmatl(Psi);
 
     // return Psi;
+}
+
+void BVS_dMVP::approx_sympd(arma::mat& x) {
+    /*
+        std::cout << "\n...Debug -- Psi is not positive definite!!!" << std::endl;
+        Psi.save("Psi.txt",arma::raw_ascii);
+        SigmaRho.save("sigmaRho.txt",arma::raw_ascii);
+
+        arma::mat Psi0, invPsi;
+        arma::inv(invPsi, Psi, arma::inv_opts::allow_approx);
+        arma::inv(Psi0, invPsi, arma::inv_opts::allow_approx);
+         */
+
+        // find nearest positive definite matrix
+        // ref: https://stackoverflow.com/questions/61639182/find-the-nearest-postive-definte-matrix-with-eigen
+        // the converted matrix can be the same til 12 digits:) It might mean that NPD is just due to numerical issue
+        Eigen::MatrixXd eigen_x = Eigen::Map<Eigen::MatrixXd>(x.memptr(), x.n_rows, x.n_cols);
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(0.5 * (eigen_x + eigen_x.transpose()));
+        Eigen::MatrixXd A = solver.eigenvectors() * solver.eigenvalues().cwiseMax(0).asDiagonal() * solver.eigenvectors().transpose();
+        //arma::mat x0  = matrixxd_to_armamat(A);
+        x = arma::mat(A.data(), A.rows(), A.cols(), true, false);
+        x = 0.5 * (x + x.t()); // to be sure for symmetry
+        /*
+        if (!Psi0.is_sympd())
+        {
+            std::cout << "\n...Debug -- Psi0 is not positive definite!!!" << std::endl;
+            Psi0.save("Psi0.txt",arma::raw_ascii);
+        }
+        Psi = Psi0;
+        */
+
+        // std::cout << "updatePsi()-Eigen: Psi=\n" << Psi << "\n";
 }
