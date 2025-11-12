@@ -102,12 +102,12 @@ void BVS_dMVP::mcmc(
         gibbs_SigmaRho(
             SigmaRho,
             // psi,
+            U,
             RhoU,
             hyperpar.nu,
             logP_SigmaRho,
             Z,
-            dataclass,
-            betas
+            dataclass
         );
         // /*testing*/SigmaRho = arma::diagmat( arma::ones<arma::vec>(L) );
 
@@ -129,6 +129,7 @@ void BVS_dMVP::mcmc(
                 tau0Sq,
                 tauSq,
                 SigmaRho,
+                U,
                 RhoU,
                 Z,
                 D,
@@ -148,6 +149,7 @@ void BVS_dMVP::mcmc(
                 tau0Sq,
                 tauSq,
                 SigmaRho,
+                U,
                 RhoU,
                 Z,
                 D,
@@ -163,6 +165,7 @@ void BVS_dMVP::mcmc(
             betas,
             gammas,
             SigmaRho,
+            U,
             RhoU,
             tau0Sq,
             tauSq,
@@ -224,7 +227,8 @@ void BVS_dMVP::sampleGamma(
     const double tau0Sq,
     const double tauSq,
     const arma::mat& SigmaRho,
-    const arma::mat& RhoU,
+    arma::mat& U,
+    arma::mat& RhoU,
 
     const arma::mat& Z,
     const arma::mat& D,
@@ -284,6 +288,7 @@ void BVS_dMVP::sampleGamma(
 
     arma::mat proposedBeta = betas;
     // proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+    arma::mat proposedU = U;
     arma::mat proposedRhoU = RhoU;
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
@@ -293,6 +298,7 @@ void BVS_dMVP::sampleGamma(
         proposedBeta,
         proposedGamma,
         SigmaRho,
+        proposedU,
         proposedRhoU,
         tau0Sq,
         tauSq,
@@ -316,6 +322,8 @@ void BVS_dMVP::sampleGamma(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
+        U = proposedU;
+        RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -354,7 +362,8 @@ void BVS_dMVP::sampleGammaProposalRatio(
     const double tau0Sq,
     const double tauSq,
     const arma::mat& SigmaRho,
-    const arma::mat& RhoU,
+    arma::mat& U,
+    arma::mat& RhoU,
 
     const arma::mat& Z,
     const arma::mat& D,
@@ -410,6 +419,7 @@ void BVS_dMVP::sampleGammaProposalRatio(
 
     arma::mat proposedBeta = betas;
     // proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+    arma::mat proposedU = U;
     arma::mat proposedRhoU = RhoU;
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
@@ -419,6 +429,7 @@ void BVS_dMVP::sampleGammaProposalRatio(
                             proposedBeta,
                             proposedGamma,
                             SigmaRho,
+                            proposedU,
                             proposedRhoU,
                             tau0Sq,
                             tauSq,
@@ -430,6 +441,7 @@ void BVS_dMVP::sampleGammaProposalRatio(
                             betas,
                             gammas,
                             SigmaRho,
+                            proposedU,
                             proposedRhoU,
                             tau0Sq,
                             tauSq,
@@ -462,6 +474,8 @@ void BVS_dMVP::sampleGammaProposalRatio(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
+        U = proposedU;
+        RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -538,7 +552,8 @@ void BVS_dMVP::gibbs_betas(
     arma::mat& betas,
     const arma::umat& gammas,
     const arma::mat& SigmaRho,
-    const arma::mat& RhoU,
+    arma::mat& U,
+    arma::mat& RhoU,
     const double tau0Sq,
     const double tauSq,
     const arma::mat& Z,
@@ -547,7 +562,7 @@ void BVS_dMVP::gibbs_betas(
     // double logP = 0.;
     unsigned int L = Z.n_cols;
 
-    arma::mat U = Z - dataclass.X * betas;
+    // arma::mat U = Z - dataclass.X * betas;
     betas.fill( 0. ); // reset here, since we already computed U above
 
     arma::mat y_tilde = Z - RhoU ;
@@ -596,7 +611,8 @@ void BVS_dMVP::gibbs_betas(
         betas(VS_IN_k, singleIdx_k) = beta_mask;
     }
 
-    // RhoU = createRhoU(U ,  SigmaRho); // no need, because it's not used before next update in gibbs_SigmaRho()
+    U = Z - dataclass.X * betas;
+    RhoU = createRhoU(U ,  SigmaRho); // no need, because it's not used before next update in gibbs_SigmaRho()
 
     // return logP;
 }
@@ -632,6 +648,7 @@ double BVS_dMVP::gibbs_betaK(
     arma::mat& betas,
     const arma::umat& gammas,
     const arma::mat& SigmaRho,
+    arma::mat& U,
     arma::mat& RhoU,
     const double tau0Sq,
     const double tauSq,
@@ -643,7 +660,7 @@ double BVS_dMVP::gibbs_betaK(
 
     unsigned int L = betas.n_cols;
 
-    arma::mat U = Z - dataclass.X * betas;
+    // arma::mat U = Z - dataclass.X * betas;
     arma::vec y_tilde = Z.col(k) - RhoU.col(k);
     y_tilde /= SigmaRho(k,k) ;
 
@@ -696,7 +713,8 @@ double BVS_dMVP::logP_gibbs_betaK(
     const arma::mat& betas,
     const arma::umat& gammas,
     const arma::mat& SigmaRho,
-    arma::mat& RhoU,
+    const arma::mat& U,
+    const arma::mat& RhoU,
     const double tau0Sq,
     const double tauSq,
     const arma::mat& Z,
@@ -707,7 +725,7 @@ double BVS_dMVP::logP_gibbs_betaK(
 
     unsigned int L = betas.n_cols;
 
-    arma::mat U = Z - dataclass.X * betas;
+    // arma::mat U = Z - dataclass.X * betas;
     arma::vec y_tilde = Z.col(k) - RhoU.col(k);
     y_tilde /= SigmaRho(k,k) ;
 
@@ -743,12 +761,12 @@ double BVS_dMVP::logP_gibbs_betaK(
 void BVS_dMVP::gibbs_SigmaRho(
     arma::mat& SigmaRho,
     // const double psi,
+    const arma::mat& U,
     arma::mat& RhoU,
     const double nu,
     double& logP_SigmaRho,
     const arma::mat& Z,
-    const DataClass& dataclass,
-    const arma::mat& betas)
+    const DataClass& dataclass)
 {
     double logP = 0.;
 
@@ -757,7 +775,7 @@ void BVS_dMVP::gibbs_SigmaRho(
 
     SigmaRho.fill(0.);
 
-    arma::mat U = Z - dataclass.X * betas;
+    // arma::mat U = Z - dataclass.X * betas;
     arma::mat Sigma = U.t() * U;
     Sigma.diag() += 1.0;
 
@@ -795,8 +813,8 @@ void BVS_dMVP::gibbs_SigmaRho(
         // *** Diagonal Element
 
         // Compute parameters
-        // a = 0.5 * (double)N + (double)k;
-        a = 0.5 * ( N + nu - L + 2*nConditioninIndexes + 1. ) ;
+        a = 0.5 * (double)N + (double)k;
+        // a = 0.5 * ( N + nu - L + 2*nConditioninIndexes + 1. ) ;
         b = 0.5 * thisSigmaTT ;
         // if(b <= 0 )
         // {
@@ -1159,35 +1177,7 @@ void BVS_dMVP::updatePsi(
     //    std::cout << "\n...Debug -- Psi is not symmetric!!!" << std::endl;
     if (!Psi.is_sympd())
     {
-        /*
-        std::cout << "\n...Debug -- Psi is not positive definite!!!" << std::endl;
-        Psi.save("Psi.txt",arma::raw_ascii);
-        SigmaRho.save("sigmaRho.txt",arma::raw_ascii);
-
-        arma::mat Psi0, invPsi;
-        arma::inv(invPsi, Psi, arma::inv_opts::allow_approx);
-        arma::inv(Psi0, invPsi, arma::inv_opts::allow_approx);
-         */
-
-        // find nearest positive definite matrix
-        // ref: https://stackoverflow.com/questions/61639182/find-the-nearest-postive-definte-matrix-with-eigen
-        // the converted matrix can be the same til 12 digits:) It might mean that NPD is just due to numerical issue
-        Eigen::MatrixXd eigen_Psi = Eigen::Map<Eigen::MatrixXd>(Psi.memptr(), Psi.n_rows, Psi.n_cols);
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(0.5 * (eigen_Psi + eigen_Psi.transpose()));
-        Eigen::MatrixXd A = solver.eigenvectors() * solver.eigenvalues().cwiseMax(0).asDiagonal() * solver.eigenvectors().transpose();
-        //arma::mat Psi0  = matrixxd_to_armamat(A);
-        Psi = arma::mat(A.data(), A.rows(), A.cols(), true, false);
-        Psi = 0.5 * (Psi + Psi.t()); // to be sure for symmetry
-        /*
-        if (!Psi0.is_sympd())
-        {
-            std::cout << "\n...Debug -- Psi0 is not positive definite!!!" << std::endl;
-            Psi0.save("Psi0.txt",arma::raw_ascii);
-        }
-        Psi = Psi0;
-        */
-
-        std::cout << "updatePsi()-Eigen: Psi=\n" << Psi << "\n";
+        approx_sympd(Psi);
     }
     // generate symmetric matrix by reflecting the lower triangle to the upper triangle
     // Psi = arma::symmatl(Psi);
@@ -1224,5 +1214,5 @@ void BVS_dMVP::approx_sympd(arma::mat& x) {
         Psi = Psi0;
         */
 
-        // std::cout << "updatePsi()-Eigen: Psi=\n" << Psi << "\n";
+        std::cout << "updatePsi()-Eigen: Psi=\n" << x << "\n";
 }

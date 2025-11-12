@@ -59,7 +59,8 @@ private:
         const double tau0Sq,
         const double tauSq,
         const arma::mat& SigmaRho,
-        const arma::mat& RhoU,
+        arma::mat& U,
+        arma::mat& RhoU,
 
         const arma::mat& Z,
         const arma::mat& D,
@@ -78,7 +79,8 @@ private:
         const double tau0Sq,
         const double tauSq,
         const arma::mat& SigmaRho,
-        const arma::mat& RhoU,
+        arma::mat& U,
+        arma::mat& RhoU,
 
         const arma::mat& Z,
         const arma::mat& D,
@@ -88,12 +90,12 @@ private:
     static void gibbs_SigmaRho(
         arma::mat& SigmaRho,
         // const double psi,
+        const arma::mat& U,
         arma::mat& RhoU,
         const double nu,
         double& logP_SigmaRho,
         const arma::mat& Z,
-        const DataClass& dataclass,
-        const arma::mat& betas
+        const DataClass& dataclass
     );
     /*
     static double logPSigmaRho(
@@ -115,14 +117,15 @@ private:
 
     static arma::mat createRhoU(
         const arma::mat& U,
-        const arma::mat&  SigmaRho
+        const arma::mat& SigmaRho
     );
 
     static void gibbs_betas(
         arma::mat& betas,
         const arma::umat& gammas,
         const arma::mat& SigmaRho,
-        const arma::mat& RhoU,
+        arma::mat& U,
+        arma::mat& RhoU,
         const double tau0Sq,
         const double tauSq,
         const arma::mat& Z,
@@ -134,7 +137,8 @@ private:
         const arma::mat& betas,
         const arma::umat& gammas,
         const arma::mat& SigmaRho,
-        arma::mat& RhoU,
+        const arma::mat& U,
+        const arma::mat& RhoU,
         const double tau0Sq,
         const double tauSq,
         const arma::mat& Z,
@@ -153,6 +157,7 @@ private:
         arma::mat& betas,
         const arma::umat& gammas,
         const arma::mat& SigmaRho,
+        arma::mat& U,
         arma::mat& RhoU,
         const double tau0Sq,
         const double tauSq,

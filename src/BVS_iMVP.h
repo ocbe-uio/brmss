@@ -68,14 +68,14 @@ private:
         Gamma_Sampler_Type gamma_sampler,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
-        arma::vec& loglik,
-
+        double& log_likelihood,
         const hyperparClass& hyperpar,
 
         arma::mat& betas,
-        double tau0Sq,
-        arma::vec& tauSq,
+        const double tau0Sq,
+        const double tauSq,
 
+        const arma::mat& Z,
         const DataClass &dataclass
     );
 
@@ -85,7 +85,7 @@ private:
         const DataClass& dataclass
     );
 
-    static void gibbs_betaK(
+    static double gibbs_betaK(
         const unsigned int k,
         arma::mat& betas,
         const arma::umat& gammas,
@@ -95,6 +95,23 @@ private:
         const DataClass &dataclass
     );
 
+    static double logP_gibbs_betaK(
+        const unsigned int k,
+        arma::mat& betas,
+        const arma::umat& gammas,
+        const double tau0Sq,
+        const double tauSq,
+        const arma::mat& Z,
+        const DataClass &dataclass
+    );
+
+    static double logPBetaMask(
+        const arma::mat& betas,
+        const arma::umat& gammas,
+        const double tau0Sq,
+        const double tauSq
+    );
+    /*
     static void gibbs_sigmaSq(
         arma::vec& sigmaSq,
         double a,
@@ -102,6 +119,7 @@ private:
         const DataClass& dataclass,
         const arma::mat& betas
     );
+    */
 
     static void gibbs_betas(
         arma::mat& betas,
