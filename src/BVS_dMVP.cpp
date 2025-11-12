@@ -1214,5 +1214,5 @@ void BVS_dMVP::approx_sympd(arma::mat& x) {
         Psi = Psi0;
         */
 
-        std::cout << "updatePsi()-Eigen: Psi=\n" << x << "\n";
+        Rcpp::Rcout << "updatePsi()-Eigen: Psi=\n" << x << "\n";
 }
