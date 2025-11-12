@@ -73,9 +73,8 @@ simData <- function(n = 200, p = 10, L = 1,
     y <- matrix(NA, nrow = n, ncol = L)
     betas[1, ] <- -0.5
     repeat{
-      for (i in 1:(n*L)) {
-        y[i] <- rbinom(1, 1, dnorm( cbind(1, x) %*% betas ))
-      }
+        y <- matrix(rbinom(n * L, 1, pnorm( cbind(1, x) %*% betas )), ncol = L)
+      
       if( min(colMeans(y)) > 0.01 && max(colMeans(y)) < 1 - 0.01 )
         break
       
@@ -92,7 +91,7 @@ simData <- function(n = 200, p = 10, L = 1,
     y <- matrix(NA, nrow = n, ncol = 1)
     betas[1] <- -0.5
     repeat{
-      y[, 1] <- as.numeric(1 / (1 + exp(-cbind(1, x) %*% betas)) > 0.5)
+      y[, 1] <- rbinom(n, 1, 1 / (1 + exp(-cbind(1, x) %*% betas)))
       if( mean(y) > 0.10 && mean(y) < 1 - 0.10)
         break
       
