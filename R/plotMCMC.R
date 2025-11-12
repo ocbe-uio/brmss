@@ -44,8 +44,8 @@ plotMCMC <- function(dat, datMCMC, estimator = "tau") {
 
   p.idx <- 1:((p + 1) * L)
   if (p > 10) {
-    p.idx <- rep(1:11, L) + (p + 1) * rep(0:(L - 1), each = 11)
     p <- 10
+    p.idx <- rep(1:11, L) + (p + 1) * rep(0:(L - 1), each = 11)
   }
   if ("beta" %in% estimator) {
     betas.mcmc <- datMCMC$output$betas[, p.idx]
