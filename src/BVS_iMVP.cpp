@@ -329,7 +329,8 @@ void BVS_iMVP::gibbs_betas(
         arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
         diag_elements[0] = 1./tau0Sq;
 
-        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
+        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k);// + arma::diagmat(diag_elements);
+        invW.diag() += diag_elements;
         arma::mat W;
         if( !arma::inv_sympd( W,  invW ) )
         {
@@ -391,7 +392,8 @@ double BVS_iMVP::gibbs_betaK(
     arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
     diag_elements[0] = 1./tau0Sq;
 
-    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
+    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k);// + arma::diagmat(diag_elements);
+    invW.diag() += diag_elements;
     arma::mat W;
     if( !arma::inv_sympd( W,  invW ) )
     {
@@ -430,7 +432,8 @@ double BVS_iMVP::logP_gibbs_betaK(
     arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq));
     diag_elements[0] = 1./tau0Sq;
 
-    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) + arma::diagmat(diag_elements);
+    arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k);// + arma::diagmat(diag_elements);
+    invW.diag() += diag_elements;
     arma::mat W;
     if( !arma::inv_sympd( W,  invW ) )
     {

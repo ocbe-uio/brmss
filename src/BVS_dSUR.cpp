@@ -586,7 +586,8 @@ void BVS_dSUR::gibbs_betas(
         diag_elements[0] = 1./tau0Sq;
 
         arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
-                         ( 1./SigmaRho(k,k) + xtxMultiplier(k)  ) + arma::diagmat(diag_elements);
+                         ( 1./SigmaRho(k,k) + xtxMultiplier(k)  );// + arma::diagmat(diag_elements);
+        invW.diag() += diag_elements;
         arma::mat W_k;
         if( !arma::inv_sympd( W_k,  invW ) )
         {
@@ -672,7 +673,8 @@ double BVS_dSUR::gibbs_betaK(
     diag_elements[0] = 1./tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
-                     ( 1./SigmaRho(k,k) + xtxMultiplier  ) + arma::diagmat(diag_elements);
+                     ( 1./SigmaRho(k,k) + xtxMultiplier  );// + arma::diagmat(diag_elements);
+    invW.diag() += diag_elements;
     arma::mat W_k;
     if( !arma::inv_sympd( W_k,  invW ) )
     {
@@ -729,7 +731,8 @@ double BVS_dSUR::logP_gibbs_betaK(
     diag_elements[0] = 1./tau0Sq;
 
     arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) *
-                     ( 1./SigmaRho(k,k) + xtxMultiplier  ) + arma::diagmat(diag_elements);
+                     ( 1./SigmaRho(k,k) + xtxMultiplier  );// + arma::diagmat(diag_elements);
+    invW.diag() += diag_elements;
     arma::mat W_k;
     if( !arma::inv_sympd( W_k,  invW ) )
     {

@@ -434,7 +434,8 @@ void BVS_HRR::gibbs_betas(
         arma::vec diag_elements = arma::vec(VS_IN_k.n_elem, arma::fill::value(1./tauSq/sigmaSq[k]));
         diag_elements[0] = 1.;///tau0Sq;
 
-        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) / sigmaSq[k] + arma::diagmat(diag_elements);
+        arma::mat invW = dataclass.X.cols(VS_IN_k).t() * dataclass.X.cols(VS_IN_k) / sigmaSq[k];// + arma::diagmat(diag_elements);
+        invW.diag() += diag_elements;
         arma::mat W;
         if( !arma::inv_sympd( W,  invW ) )
         {
