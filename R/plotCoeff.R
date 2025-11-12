@@ -102,6 +102,9 @@ plotCoeff <- function(dat,
       value = as.vector(betas.mcmc),
       coef.true = rep(betas.true, each = nrow(betas.mcmc))
     )
+    dat.estimate$cluster <- factor(dat.estimate$cluster, 
+                                   levels = paste0("Y", 1:L)
+    )
     dat.estimate$covariate <- factor(dat.estimate$covariate,
       levels = label.y[p:1]
     )
@@ -156,6 +159,9 @@ plotCoeff <- function(dat,
       cluster = rep(paste0("Y", 1:L), each = p),
       covariate = rep(label.y, L),
       value = as.vector(mPIP)
+    )
+    dat.estimate$cluster <- factor(dat.estimate$cluster, 
+                                   levels = paste0("Y", 1:L)
     )
     dat.estimate$covariate <- factor(dat.estimate$covariate,
       levels = label.y[p:1]
