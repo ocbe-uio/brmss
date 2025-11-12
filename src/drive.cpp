@@ -230,8 +230,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        ::Rf_error("ERROR: Wrong type of family given!");
-        return 1;
+        throw std::runtime_error("Wrong type of family given!");
     }
 
     // Gamma Sampler
@@ -246,8 +245,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        ::Rf_error("ERROR: Wrong type of gamma_sampler given!");
-        return 1;
+        throw std::runtime_error("Wrong type of gamma_sampler given!");
     }
 
     // Gamma Gibbs Sampler for GLM
@@ -266,8 +264,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        ::Rf_error("ERROR: Wrong type of gamma_gibbs given!");
-        return 1;
+        throw std::runtime_error("Wrong type of gamma_gibbs given!");
     }
 
     // variance prior
@@ -286,8 +283,7 @@ Rcpp::List run_mcmc(
     }
     else
     {
-        ::Rf_error("ERROR: Wrong type of varPrior given!");
-        return 1;
+        throw std::runtime_error("Wrong type of varPrior given!");
     }
 
     // mean parameter
@@ -387,11 +383,11 @@ Rcpp::List run_mcmc(
         break;
 
     case Family_Type::poisson :
-        ::Rf_error("Not yet implemented!");
+        throw std::runtime_error("Not yet implemented!");
         break;
 
     case Family_Type::beta :
-        ::Rf_error("Not yet implemented!");
+        throw std::runtime_error("Not yet implemented!");
         break;
 
     case Family_Type::weibull :
@@ -501,7 +497,7 @@ Rcpp::List run_mcmc(
             break;
 
         case Variance_Prior_Type::HIW :
-            ::Rf_error("Not yet implemented mgaussian with HIW!");
+            throw std::runtime_error("Not yet implemented mgaussian with HIW!");
             break;
 
         }
@@ -561,7 +557,7 @@ Rcpp::List run_mcmc(
             break;
 
         case Variance_Prior_Type::HIW :
-            ::Rf_error("Not yet implemented mgaussian with HIW!");
+            throw std::runtime_error("Not yet implemented mgaussian with HIW!");
             break;
 
         }

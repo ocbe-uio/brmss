@@ -169,7 +169,7 @@ void BVS_gaussian::mcmc(
             // TODO: betas have g-prior
             // TODO: remember to change 'gibbs_beta_gaussian()' with g-prior variance matrix for betas
 
-            ::Rf_error("GLM with g-prior has not yet been implemented!");
+            throw std::runtime_error("GLM with g-prior has not yet been implemented!");
             break;
 
         }

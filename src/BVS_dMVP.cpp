@@ -541,7 +541,7 @@ double BVS_dMVP::logLikelihood(
 
     if(std::isnan(logP))
     {
-        ::Rf_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)=");
+        throw std::runtime_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)=");
         //normcdf_Z.min() << ", " << normcdf_Z.max() << "; sum(B)=" << arma::accu(betas) << "\n";
     }
 
@@ -816,7 +816,7 @@ void BVS_dMVP::gibbs_SigmaRho(
         b = 0.5 * thisSigmaTT ;
         // if(b <= 0 )
         // {
-        //     ::Rf_error(" Negative parameter in gibbs_SigmaRho b");
+        //     throw std::runtime_error(" Negative parameter in gibbs_SigmaRho b");
         // }
 
         SigmaRho(k,k) = BVS_subfunc::randIGamma( a, b );
@@ -1053,7 +1053,7 @@ void BVS_dMVP::sampleZ(
 
         // if(Rinv(k, k) <= 0 )
         // {
-        //     ::Rf_error(" Negative parameter in sampleZ Rinv(k, k)");
+        //     throw std::runtime_error(" Negative parameter in sampleZ Rinv(k, k)");
         // }
 
         mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );

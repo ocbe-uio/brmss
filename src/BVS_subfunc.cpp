@@ -275,7 +275,7 @@ arma::vec BVS_subfunc::randMvNormal(
     //check
     if(Sigma.n_rows != d || Sigma.n_cols != d )
     {
-        ::Rf_error("Dimension not matching in the multivariate normal sampler");
+        throw std::runtime_error("Dimension not matching in the multivariate normal sampler");
     }
 
     arma::mat A;
@@ -295,7 +295,7 @@ arma::vec BVS_subfunc::randMvNormal(
         }
         else
         {
-            ::Rf_error("randMvNorm failing because of singular Sigma matrix");
+            throw std::runtime_error("randMvNorm failing because of singular Sigma matrix");
         }
     }
 
@@ -337,7 +337,7 @@ double BVS_subfunc::randIGamma(double shape, double scale)
     //check
     if(shape <= 0 || scale <= 0 )
     {
-        ::Rf_error(" Negative parameter in the gamma sampler");
+        throw std::runtime_error(" Negative parameter in the gamma sampler");
     }
 
     return 1./R::rgamma(shape, 1./scale);

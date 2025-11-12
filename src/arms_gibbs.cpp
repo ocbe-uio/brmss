@@ -447,7 +447,7 @@ double ARMS_Gibbs::slice_sample(
         }
         while (cnt < 1e4);
 
-        if (cnt == 1e4) ::Rf_error("slice_sample_cpp loop did not finish");
+        if (cnt == 1e4) throw std::runtime_error("slice_sample_cpp loop did not finish");
 
         x = xs;
         logy = logys;

@@ -277,7 +277,7 @@ double BVS_iMVP::logLikelihood(
 
     if(std::isnan(logP))
     {
-        ::Rf_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)=");
+        throw std::runtime_error("...logLikelihood() std::isnan(logP) cdf(XB): (min,max)=");
         //normcdf_Z.min() << ", " << normcdf_Z.max() << "; sum(B)=" << arma::accu(betas) << "\n";
     }
 
