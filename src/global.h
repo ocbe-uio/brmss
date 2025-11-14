@@ -136,6 +136,9 @@ public:
         double tauA_,
         double tauB_,
 
+        double etaA_,
+        double etaB_,
+
         double kappaA_,
         double kappaB_,
 
@@ -155,6 +158,9 @@ public:
         tau0B(tau0B_),
         tauA(tauA_),
         tauB(tauB_),
+
+        etaA(etaA_),
+        etaB(etaB_),
 
         kappaA(kappaA_),
         kappaB(kappaB_),
