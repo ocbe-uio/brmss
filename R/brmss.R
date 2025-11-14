@@ -171,6 +171,10 @@ brmss <- function(y, x,
     hyperpar$tau0A <- hyperpar$tauA
     hyperpar$tau0B <- hyperpar$tauB
   }
+  if (!"etaA" %in% names(hyperpar)) {
+    hyperpar$etaA <- 0.1
+    hyperpar$etaB <- 1
+  }
 
   if (!"kappaA" %in% names(hyperpar)) {
     hyperpar$kappaA <- 1 # 3

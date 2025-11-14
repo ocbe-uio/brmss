@@ -78,7 +78,7 @@ void BVS_SSUR::mcmc(
     double logP_eta = 0.;
     double logP_jt = 0.;
     // std::cout << "...debug133\n";
-    sampleEta(jt, logP_eta, logP_jt, L);
+    sampleEta(jt, hyperpar.etaA, hyperpar.etaB, logP_eta, logP_jt, L);
     // std::cout << "...debug134\n";
     sampleJT(jt, eta, hyperpar.nu, psi, SigmaRho, RhoU, betas, logP_jt, logP_SigmaRho, log_likelihood, dataclass);
 
@@ -109,7 +109,7 @@ void BVS_SSUR::mcmc(
         tau0Sq = sampleTau(hyperpar.tau0A, hyperpar.tau0B, betas.row(0).t());
 
         // update HIW's graph
-        sampleEta(jt, logP_eta, logP_jt, L);
+        sampleEta(jt, hyperpar.etaA, hyperpar.etaB, logP_eta, logP_jt, L);
         sampleJT(jt, eta, hyperpar.nu, psi, SigmaRho, RhoU, betas, logP_jt, logP_SigmaRho, log_likelihood, dataclass);
 
         // std::cout << "...debug51\n";
@@ -868,6 +868,8 @@ void BVS_SSUR::samplePsi(
 // MH update for HIW graph's edge probability
 double BVS_SSUR::sampleEta(
     const JunctionTree& jt,
+    const double a_eta,
+    const double b_eta,
     double& logP_eta,
     double& logP_jt,
     const unsigned int L
@@ -875,8 +877,8 @@ double BVS_SSUR::sampleEta(
 {
     // unsigned int L = 10;
 
-    double a_eta = 1.;
-    double b_eta = 10.;
+    // double a_eta = 1.;
+    // double b_eta = 10.;
 
     double a = a_eta + 0.5*(arma::accu(jt.getAdjMat())/2. ) ; // divide by temperature if the prior on G is tempered
     double b = b_eta + ( (double)(L * (L-1.) * 0.5) - 0.5*(arma::accu(jt.getAdjMat())/2. ) ); // /temperature

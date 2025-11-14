@@ -111,6 +111,9 @@ public:
     const double tauA;
     const double tauB;
 
+    const double etaA;
+    const double etaB;
+
     const double kappaA;
     const double kappaB;
 

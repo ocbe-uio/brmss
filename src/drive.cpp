@@ -130,6 +130,8 @@ Rcpp::List run_mcmc(
         Rcpp::as<double>(hyperparList["tau0B"]),
         Rcpp::as<double>(hyperparList["tauA"]),
         Rcpp::as<double>(hyperparList["tauB"]),
+        Rcpp::as<double>(hyperparList["etaA"]),
+        Rcpp::as<double>(hyperparList["etaB"]),
         Rcpp::as<double>(hyperparList["kappaA"]),
         Rcpp::as<double>(hyperparList["kappaB"]),
         Rcpp::as<double>(hyperparList["pj"]),

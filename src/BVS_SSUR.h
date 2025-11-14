@@ -154,6 +154,8 @@ private:
 
     static double sampleEta(
         const JunctionTree& jt,
+        const double a_eta,
+        const double b_eta,
         double& logP_eta,
         double& logP_jt,
         const unsigned int L
