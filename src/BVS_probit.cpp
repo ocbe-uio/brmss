@@ -172,13 +172,13 @@ void BVS_probit::loglikelihood(
     const DataClass &dataclass,
     arma::vec& loglik)
 {
-    
+
     arma::vec normcdf_Z = arma::normcdf(dataclass.X * betas);
     normcdf_Z.elem(arma::find(normcdf_Z > 1.0-lowerbound0)).fill(1.0-lowerbound0);
     normcdf_Z.elem(arma::find(normcdf_Z < lowerbound0)).fill(lowerbound0);
 
     loglik = dataclass.y % arma::log(normcdf_Z) + (1.0-dataclass.y) % arma::log(1.0-normcdf_Z) ;
-    
+
 
     /*
     loglik.zeros();

@@ -48,7 +48,7 @@ void ARMS_Gibbs::arms_gibbs_beta_logistic(
         if (gammas(j))
         {
             mydata->jj = j;
-            
+
             double xprev = currentPars(j);
             std::vector<double> xsamp(armsPar.nsamp);
 
@@ -73,7 +73,7 @@ void ARMS_Gibbs::arms_gibbs_beta_logistic(
                 Rprintf("In arms_gibbs_beta(): %d-th sample out of range [%f, %f] (fused domain). Got %f.\n", armsPar.nsamp, minD, maxD, xsamp[armsPar.nsamp-1]);
 
             currentPars(j) = xsamp[armsPar.nsamp - 1];
-            
+
             /*
             currentPars(j) = slice_sample (
                     EvalFunction::log_dens_betas_logistic,
@@ -377,14 +377,14 @@ void ARMS_Gibbs::slice_kappa(
     mydata->event = dataclass.event.memptr();
 
     currentPars = slice_sample (
-        EvalFunction::log_dens_kappa,
-        mydata,
-        currentPars,
-        10,
-        1.0,
-        minD,
-        maxD
-    );
+                      EvalFunction::log_dens_kappa,
+                      mydata,
+                      currentPars,
+                      10,
+                      1.0,
+                      minD,
+                      maxD
+                  );
 
     free(mydata);
 

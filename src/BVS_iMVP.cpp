@@ -111,20 +111,20 @@ void BVS_iMVP::mcmc(
         if (gammaProposal == "simple")
         {
             sampleGamma(
-            gammas,
-            gammaSampler,
-            logP_gamma,
-            gamma_acc_count,
-            log_likelihood,
-            hyperpar,
-            betas,
-            tau0Sq,
-            tauSq,
-            Z,
-            dataclass
+                gammas,
+                gammaSampler,
+                logP_gamma,
+                gamma_acc_count,
+                log_likelihood,
+                hyperpar,
+                betas,
+                tau0Sq,
+                tauSq,
+                Z,
+                dataclass
             );
-        } 
-        else 
+        }
+        else
         {
             sampleGammaProposalRatio(
                 gammas,
@@ -139,7 +139,7 @@ void BVS_iMVP::mcmc(
                 Z,
                 dataclass
             );
-            
+
         }
 
         // std::cout << "...debug18\n";
@@ -292,7 +292,7 @@ void BVS_iMVP::loglikelihood_conditional(
     arma::vec& loglik)
 {
 
-    
+
     arma::mat normcdf_Z = arma::normcdf(dataclass.X * betas);
 
     // fix numerical issues if log(0)
@@ -668,24 +668,24 @@ void BVS_iMVP::sampleGammaProposalRatio(
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     logProposalRatio -= gibbs_betaK(
-                        componentUpdateIdx,
-                        proposedBeta,
-                        proposedGamma,
-                        tau0Sq,
-                        tauSq,
-                        Z,
-                        dataclass
-    );
+                            componentUpdateIdx,
+                            proposedBeta,
+                            proposedGamma,
+                            tau0Sq,
+                            tauSq,
+                            Z,
+                            dataclass
+                        );
 
     logProposalRatio += logP_gibbs_betaK(
-                        componentUpdateIdx,
-                        betas,
-                        gammas,
-                        tau0Sq,
-                        tauSq,
-                        Z,
-                        dataclass
-    );
+                            componentUpdateIdx,
+                            betas,
+                            gammas,
+                            tau0Sq,
+                            tauSq,
+                            Z,
+                            dataclass
+                        );
 
     // std::cout << "...debug26\n";
 

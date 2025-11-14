@@ -110,6 +110,74 @@ double BVS_subfunc::gammaBanditProposal(
 
 }
 
+arma::uvec BVS_subfunc::randSampleWithoutReplacement(
+    unsigned int populationSize,    // size of set sampling from
+    const arma::uvec& population, // population to draw from
+    unsigned int sampleSize        // size of each sample
+) // output, sample is a zero-offset indices to selected items, output is the subsampled populaiton.
+{
+    arma::uvec samples(sampleSize);
+
+    int t = 0; // total input records dealt with
+    unsigned int m = 0; // number of items selected so far
+    double u;
+
+    while (m < sampleSize)
+    {
+        u = R::runif(0.,1.); // call a uniform(0,1) random number generator
+
+        if ( (populationSize - t)*u >= sampleSize - m )
+        {
+            t++;
+        }
+        else
+        {
+            samples(m) = t;
+            t++;
+            m++;
+        }
+    }
+
+    return population(samples);
+}
+
+std::vector<unsigned int> BVS_subfunc::randSampleWithoutReplacement(
+    unsigned int populationSize,    // size of set sampling from
+    const std::vector<unsigned int>& population, // population to draw from
+    unsigned int sampleSize        // size of each sample
+) // output, sample is a zero-offset indices to selected items, output is the subsampled populaiton.
+{
+    std::vector<unsigned int> samplesIndexes(sampleSize);
+
+    int t = 0; // total input records dealt with
+    unsigned int m = 0; // number of items selected so far
+    double u;
+
+    while (m < sampleSize)
+    {
+        u = R::runif(0.,1.); // call a uniform(0,1) random number generator
+
+        if ( (populationSize - t)*u >= sampleSize - m )
+        {
+            t++;
+        }
+        else
+        {
+            samplesIndexes[m] = t;
+            t++;
+            m++;
+        }
+    }
+
+    std::vector<unsigned int> res(sampleSize);
+    m = 0;
+    for( auto i : samplesIndexes )
+    {
+        res[m++] = population[i];
+    }
+
+    return res;
+}
 
 // subfunctions used for bandit proposal
 
@@ -123,6 +191,24 @@ arma::uvec BVS_subfunc::randWeightedIndexSampleWithoutReplacement(
     arma::vec tmp = Rcpp::rexp( populationSize, 1. );
     arma::vec score = tmp - weights;
     arma::uvec result = arma::sort_index( score,"ascend" );
+
+    return result.subvec(0,sampleSize-1);
+}
+
+// Overload with equal weights
+arma::uvec BVS_subfunc::randWeightedIndexSampleWithoutReplacement
+(
+    unsigned int populationSize,    // size of set sampling from
+    unsigned int sampleSize         // size of each sample
+) // sample is a zero-offset indices to selected items, output is the subsampled population.
+{
+    // note I can do everything in the log scale as the ordering won't change!
+    arma::vec score(populationSize);// randVecExponential(populationSize,1.);
+    for(unsigned int i=0; i<populationSize; ++i)
+    {
+        score[i] = R::rexp( 1. );
+    }
+    arma::uvec result = arma::sort_index(score,"ascend");
 
     return result.subvec(0,sampleSize-1);
 }
@@ -358,4 +444,11 @@ double BVS_subfunc::randTruncNorm(
     double ret = R::qnorm( R::runif(p_lower, p_upper), m, sd, true, false );
 
     return ret;
+}
+
+int BVS_subfunc::randIntUniform(
+    const int a,
+    const int b)
+{
+    return ceil( R::runif( a-1, b ) );
 }

@@ -81,7 +81,22 @@ public:
         double upper
     );
 
-private:
+    static int randIntUniform(
+        const int a,
+        const int b
+    );
+
+    static arma::uvec randSampleWithoutReplacement(
+        unsigned int populationSize,
+        const arma::uvec& population,
+        unsigned int sampleSize
+    );
+
+    static std::vector<unsigned int> randSampleWithoutReplacement(
+        unsigned int populationSize,
+        const std::vector<unsigned int>& population,
+        unsigned int sampleSize
+    );
 
     static arma::uvec randWeightedIndexSampleWithoutReplacement(
         unsigned int populationSize,
@@ -89,9 +104,16 @@ private:
         unsigned int sampleSize
     );
 
+    static arma::uvec randWeightedIndexSampleWithoutReplacement(
+        unsigned int populationSize,
+        unsigned int sampleSize
+    );
+
     static unsigned int randWeightedIndexSampleWithoutReplacement(
         const arma::vec& weights
     );
+
+private:
 
     static double logPDFWeightedIndexSampleWithoutReplacement(
         const arma::vec& weights,

@@ -606,7 +606,7 @@ void BVS_dMVP::gibbs_betas(
     }
 
     U = Z - dataclass.X * betas;
-    RhoU = createRhoU(U ,  SigmaRho); // no need, because it's not used before next update in gibbs_SigmaRho()
+    RhoU = createRhoU(U,  SigmaRho);  // no need, because it's not used before next update in gibbs_SigmaRho()
 
     // return logP;
 }
@@ -670,7 +670,7 @@ double BVS_dMVP::gibbs_betaK(
     /*
     {
         xtxMultiplier += pow( SigmaRho(xi(l),k),2) /  SigmaRho(xi(l),xi(l));
-        y_tilde -= (  SigmaRho(xi(l),k) /  SigmaRho(xi(l),xi(l)) ) * 
+        y_tilde -= (  SigmaRho(xi(l),k) /  SigmaRho(xi(l),xi(l)) ) *
             ( U.col(xi(l)) - RhoU.col(xi(l)) +  SigmaRho(xi(l),k) * ( U.col(k) - Z.col(k) ) );
     }
     */
@@ -1013,13 +1013,14 @@ void BVS_dMVP::sampleZ(
         if(!arma::chol(chol_Rmm, Rmm, "lower"))
         {
             arma::mat Rmm_jit = Rmm + 1.0e-10 * arma::eye<arma::mat>(Rmm.n_rows, Rmm.n_cols);
-            if (!arma::chol(chol_Rmm, Rmm_jit, "lower")) {
+            if (!arma::chol(chol_Rmm, Rmm_jit, "lower"))
+            {
                 throw std::runtime_error("Cholesky failed for R_{-k,-k}");
             }
         }
 
-        arma::rowvec Rkm = RR.submat(singleIdx_k, excludeIdx_k); 
-        arma::vec    Rmk = RR.submat(excludeIdx_k, singleIdx_k); 
+        arma::rowvec Rkm = RR.submat(singleIdx_k, excludeIdx_k);
+        arma::vec    Rmk = RR.submat(excludeIdx_k, singleIdx_k);
         // Solve R_{-k,-k}^{-1} R_{-k,k}
         arma::vec sol2 = arma::solve(arma::trimatl(chol_Rmm), Rmk, arma::solve_opts::fast);
         sol2 = arma::solve(arma::trimatu(chol_Rmm.t()), sol2, arma::solve_opts::fast);
@@ -1170,14 +1171,15 @@ void BVS_dMVP::updatePsi(
     */
     Psi(0, 0) = SigmaRho(0, 0);
 
-    for (unsigned int j = 1; j < L; ++j) {
-        auto Psi_sub = Psi.submat(0, 0, j - 1, j - 1); 
-        auto v = SigmaRho.submat(j, 0, j, j - 1); 
+    for (unsigned int j = 1; j < L; ++j)
+    {
+        auto Psi_sub = Psi.submat(0, 0, j - 1, j - 1);
+        auto v = SigmaRho.submat(j, 0, j, j - 1);
 
         // off-diagonals
         arma::rowvec s = v * Psi_sub;
-        Psi.submat(j, 0, j, j - 1) = s;    
-        Psi.submat(0, j, j - 1, j) = s.t(); 
+        Psi.submat(j, 0, j, j - 1) = s;
+        Psi.submat(0, j, j - 1, j) = s.t();
 
         // diagonal
         double diag = SigmaRho(j, j) + arma::as_scalar(s * v.t());
@@ -1198,7 +1200,8 @@ void BVS_dMVP::updatePsi(
     // return Psi;
 }
 
-void BVS_dMVP::approx_sympd(arma::mat& x) {
+void BVS_dMVP::approx_sympd(arma::mat& x)
+{
     /*
         std::cout << "\n...Debug -- Psi is not positive definite!!!" << std::endl;
         Psi.save("Psi.txt",arma::raw_ascii);
@@ -1209,23 +1212,23 @@ void BVS_dMVP::approx_sympd(arma::mat& x) {
         arma::inv(Psi0, invPsi, arma::inv_opts::allow_approx);
          */
 
-        // find nearest positive definite matrix
-        // ref: https://stackoverflow.com/questions/61639182/find-the-nearest-postive-definte-matrix-with-eigen
-        // the converted matrix can be the same til 12 digits:) It might mean that NPD is just due to numerical issue
-        Eigen::MatrixXd eigen_x = Eigen::Map<Eigen::MatrixXd>(x.memptr(), x.n_rows, x.n_cols);
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(0.5 * (eigen_x + eigen_x.transpose()));
-        Eigen::MatrixXd A = solver.eigenvectors() * solver.eigenvalues().cwiseMax(0).asDiagonal() * solver.eigenvectors().transpose();
-        //arma::mat x0  = matrixxd_to_armamat(A);
-        x = arma::mat(A.data(), A.rows(), A.cols(), true, false);
-        x = 0.5 * (x + x.t()); // to be sure for symmetry
-        /*
-        if (!Psi0.is_sympd())
-        {
-            std::cout << "\n...Debug -- Psi0 is not positive definite!!!" << std::endl;
-            Psi0.save("Psi0.txt",arma::raw_ascii);
-        }
-        Psi = Psi0;
-        */
+    // find nearest positive definite matrix
+    // ref: https://stackoverflow.com/questions/61639182/find-the-nearest-postive-definte-matrix-with-eigen
+    // the converted matrix can be the same til 12 digits:) It might mean that NPD is just due to numerical issue
+    Eigen::MatrixXd eigen_x = Eigen::Map<Eigen::MatrixXd>(x.memptr(), x.n_rows, x.n_cols);
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(0.5 * (eigen_x + eigen_x.transpose()));
+    Eigen::MatrixXd A = solver.eigenvectors() * solver.eigenvalues().cwiseMax(0).asDiagonal() * solver.eigenvectors().transpose();
+    //arma::mat x0  = matrixxd_to_armamat(A);
+    x = arma::mat(A.data(), A.rows(), A.cols(), true, false);
+    x = 0.5 * (x + x.t()); // to be sure for symmetry
+    /*
+    if (!Psi0.is_sympd())
+    {
+        std::cout << "\n...Debug -- Psi0 is not positive definite!!!" << std::endl;
+        Psi0.save("Psi0.txt",arma::raw_ascii);
+    }
+    Psi = Psi0;
+    */
 
-        Rcpp::Rcout << "updatePsi()-Eigen: Psi=\n" << x << "\n";
+    Rcpp::Rcout << "updatePsi()-Eigen: Psi=\n" << x << "\n";
 }

@@ -8,6 +8,7 @@
 #include "BVS_dirichlet.h"
 #include "BVS_HRR.h"
 #include "BVS_dSUR.h"
+#include "BVS_SSUR.h"
 #include "BVS_iMVP.h"
 #include "BVS_dMVP.h"
 
@@ -497,7 +498,25 @@ Rcpp::List run_mcmc(
             break;
 
         case Variance_Prior_Type::HIW :
-            throw std::runtime_error("Not yet implemented mgaussian with HIW!");
+            BVS_SSUR::mcmc(
+                nIter,
+                burnin,
+                thin,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
             break;
 
         }

@@ -51,9 +51,9 @@ void BVS_logistic::mcmc(
     // arma::vec mu = dataclass.X * betas;
 
     arma::vec loglik = loglikelihood(
-        betas,
-        dataclass
-    );
+                           betas,
+                           dataclass
+                       );
     loglikelihood_mcmc.row(0) = loglik.t();
 
 
@@ -145,9 +145,9 @@ void BVS_logistic::mcmc(
             gamma_mcmc.row(1+nIter_thin_count) = arma::vectorise(gammas).t();
 
             loglik = loglikelihood(
-                betas,
-                dataclass
-            );
+                         betas,
+                         dataclass
+                     );
 
             // save loglikelihoods
             loglikelihood_mcmc.row(1+nIter_thin_count) = loglik.t();
@@ -164,7 +164,7 @@ arma::vec BVS_logistic::loglikelihood(
     const arma::mat& betas,
     const DataClass &dataclass)
 {
-    
+
     arma::vec xb = dataclass.X * betas;
     // xb.elem(arma::find(xb > 50.0)).fill(50.0);
     // xb.elem(arma::find(xb < -50.0)).fill(-50.0);
