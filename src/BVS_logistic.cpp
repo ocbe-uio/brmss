@@ -411,7 +411,7 @@ void BVS_logistic::sampleGammaProposalRatio(
                             dataclass
                         );
     double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq) - BVS_subfunc::logPDFNormal(betas, tauSq);
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik

@@ -454,7 +454,7 @@ void BVS_dirichlet::sampleGammaProposalRatio(
 
     double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta.col(componentUpdateIdx), tauSq[componentUpdateIdx]) -
                                BVS_subfunc::logPDFNormal(betas.col(componentUpdateIdx), tauSq[componentUpdateIdx]);
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
     // TODO: check if 'logProposalBetaRatio == -(logLikelihoodRatio + logPriorBetaRatio)'
 

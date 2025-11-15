@@ -459,7 +459,7 @@ void BVS_dSUR::sampleGammaProposalRatio(
 
     // double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta.col(componentUpdateIdx), SigmaRho(componentUpdateIdx,componentUpdateIdx)) -
     //                            BVS_subfunc::logPDFNormal(betas.col(componentUpdateIdx), SigmaRho(componentUpdateIdx,componentUpdateIdx));
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated

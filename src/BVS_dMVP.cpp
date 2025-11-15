@@ -458,7 +458,7 @@ void BVS_dMVP::sampleGammaProposalRatio(
     double logP_beta = logPBetaMask( betas, gammas, tau0Sq, tauSq );
     double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, tau0Sq, tauSq );
 
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated

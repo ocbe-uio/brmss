@@ -5,8 +5,10 @@
 * Fix minor bugs in `BVS_subfunc::gammaMC3Proposal()` and `BVS_gaussian::sampleGamma()
 * Fix bug with Gibbs sampling for Bernoulli probability
 * Add hierarchical related regressions (HRR)
+* Fixed bugs in all functions `sampleGammaProposalRatio()`
 
-* TODO: check BVS_SSUR::gibbs_SigmaRho() and BVS_SSUR::gibbs_betas() to see why estimated gammas so big
+* TODO: Perhaps still bug in BVS_dMVP
+
 * TODO: for (multivariate) probit model, try sample betas via ARMS
 
 * TODO: add mvprobit

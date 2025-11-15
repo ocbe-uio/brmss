@@ -470,7 +470,7 @@ void BVS_gaussian::sampleGammaProposalRatio(
     */
 
     double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]) - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
