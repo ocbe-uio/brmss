@@ -119,7 +119,7 @@ void BVS_SSUR::mcmc(
 
         if( internalIterationCounter >= jtStartIteration )
             sampleJT(jt, eta, hyperpar.nu, psi, SigmaRho, RhoU, betas, logP_jt, logP_SigmaRho, log_likelihood, dataclass);
-        ++ internalIterationCounter;
+        ++internalIterationCounter;
 
         // std::cout << "...debug51\n";
         // update reparametrized covariance matrix
@@ -479,7 +479,7 @@ void BVS_SSUR::sampleGammaProposalRatio(
     // update density of beta priors
     double logP_beta = logPBetaMask( betas, gammas, SigmaRho, RhoU, tau0Sq, tauSq, dataclass );
     double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, SigmaRho, proposedRhoU, tau0Sq, tauSq, dataclass );
-    double logProposalBetaRatio = logP_beta - proposedBetaPrior;
+    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +
