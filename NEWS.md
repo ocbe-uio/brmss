@@ -6,6 +6,7 @@
 * Fix bug with Gibbs sampling for Bernoulli probability
 * Add hierarchical related regressions (HRR)
 
+* TODO: BVS_SSUR.cpp results in large mPIPs for truly unrelevant features, some bug!!! compare with BayesSUR::SSUR() to debug
 * TODO: for (multivariate) probit model, try sample betas via ARMS
 
 * TODO: add mvprobit
