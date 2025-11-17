@@ -50,6 +50,7 @@ getEstimator <- function(object, estimator = "gamma", Pmax = 0,
   }
   
   burnin <- object$input$burnin / object$input$thin
+  L <- NCOL(object$input$y)
 
   if (estimator %in% c("gamma", "beta")) {
     estimate <- matrix(colMeans(object$output$gammas[-c(1:burnin), ]), ncol = L)

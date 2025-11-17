@@ -9,7 +9,7 @@
 
 * TODO: in MVP models, try to use MH sampler for D instead of directly extracting from Psi
 
-* TODO: for (multivariate) probit model, try sample betas via ARMS
+* TODO: drop beta_post and gamma_post to save memory
 
 * TODO: add mvprobit
 * TODO: define N, L, p as public (global) variables in each family class
