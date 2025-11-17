@@ -479,7 +479,7 @@ void BVS_sMVP::sampleGammaProposalRatio(
         dataclass
     );
 
-    logProposalRatio += gibbs_betaK(
+    logProposalRatio += logP_gibbs_betaK(
         componentUpdateIdx,
         betas,
         gammas,
@@ -748,7 +748,7 @@ double BVS_sMVP::logP_gibbs_betaK(
     const arma::mat& SigmaRho,
     const JunctionTree& jt,
     // arma::mat& U,
-    arma::mat& RhoU,
+    const arma::mat& RhoU,
     const double tau0Sq,
     const double tauSq,
     const arma::mat& Z,

@@ -107,9 +107,31 @@ void BVS_dMVP::mcmc(
             hyperpar.nu,
             logP_SigmaRho,
             Z,
-            dataclass
+            dataclass,
+            betas
         );
         // /*testing*/SigmaRho = arma::diagmat( arma::ones<arma::vec>(L) );
+
+        // update betas
+        gibbs_betas(
+            betas,
+            gammas,
+            SigmaRho,
+            U,
+            RhoU,
+            tau0Sq,
+            tauSq,
+            Z,
+            dataclass
+        );
+
+        // update sort of covariance matrix Psi
+        updatePsi( SigmaRho, Psi );
+
+        // update latent response variables
+        sampleZ(Z, D, betas, Psi, dataclass);
+
+        log_likelihood = logLikelihood( betas, D, dataclass);
 
         // random-walk MH update for psi
         // samplePsi(psi, hyperpar.psiA, hyperpar.psiB, hyperpar.nu, logP_psi, logP_SigmaRho, SigmaRho);
@@ -159,27 +181,6 @@ void BVS_dMVP::mcmc(
 
         // std::cout << "...debug18\n";
         // betas.elem(arma::find(gammas == 0)).fill(0.);
-
-        // update post-hoc betas
-        gibbs_betas(
-            betas,
-            gammas,
-            SigmaRho,
-            U,
-            RhoU,
-            tau0Sq,
-            tauSq,
-            Z,
-            dataclass
-        );
-
-        // update sort of covariance matrix Psi
-        updatePsi( SigmaRho, Psi );
-
-        // update latent response variables
-        sampleZ(Z, D, betas, Psi, dataclass);
-
-        log_likelihood = logLikelihood( betas, D, dataclass);
 
 
         // save results for un-thinned posterior mean
@@ -295,7 +296,7 @@ void BVS_dMVP::sampleGamma(
 
     // update (addresses) 'proposedBeta' and 'logPosteriorBeta_proposal' based on 'proposedGamma'
 
-    gibbs_betaK(
+    (void)gibbs_betaK(
         componentUpdateIdx,
         proposedBeta,
         proposedGamma,
@@ -324,8 +325,8 @@ void BVS_dMVP::sampleGamma(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
-        U = proposedU;
-        RhoU = proposedRhoU;
+        // U = proposedU;
+        // RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -478,8 +479,9 @@ void BVS_dMVP::sampleGammaProposalRatio(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
-        U = proposedU;
-        RhoU = proposedRhoU;
+        // TODO: check if necessary to update U and RhoU here
+        // U = proposedU;
+        // RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -566,7 +568,7 @@ void BVS_dMVP::gibbs_betas(
     // double logP = 0.;
     unsigned int L = Z.n_cols;
 
-    // arma::mat U = Z - dataclass.X * betas;
+    U = Z - dataclass.X * betas;
     betas.fill( 0. ); // reset here, since we already computed U above
 
     arma::mat y_tilde = Z - RhoU ;
@@ -658,7 +660,7 @@ double BVS_dMVP::gibbs_betaK(
 
     unsigned int L = betas.n_cols;
 
-    // arma::mat U = Z - dataclass.X * betas;
+    U = Z - dataclass.X * betas;
     arma::vec y_tilde = Z.col(k) - RhoU.col(k);
     y_tilde /= SigmaRho(k,k) ;
 
@@ -714,7 +716,7 @@ double BVS_dMVP::logP_gibbs_betaK(
     const arma::mat& betas,
     const arma::umat& gammas,
     const arma::mat& SigmaRho,
-    const arma::mat& U,
+    arma::mat& U,
     const arma::mat& RhoU,
     const double tau0Sq,
     const double tauSq,
@@ -726,7 +728,7 @@ double BVS_dMVP::logP_gibbs_betaK(
 
     unsigned int L = betas.n_cols;
 
-    // arma::mat U = Z - dataclass.X * betas;
+    U = Z - dataclass.X * betas;
     arma::vec y_tilde = Z.col(k) - RhoU.col(k);
     y_tilde /= SigmaRho(k,k) ;
 
@@ -763,12 +765,13 @@ double BVS_dMVP::logP_gibbs_betaK(
 void BVS_dMVP::gibbs_SigmaRho(
     arma::mat& SigmaRho,
     // const double psi,
-    const arma::mat& U,
+    arma::mat& U,
     arma::mat& RhoU,
     const double nu,
     double& logP_SigmaRho,
     const arma::mat& Z,
-    const DataClass& dataclass)
+    const DataClass& dataclass,
+    const arma::mat& betas)
 {
     double logP = 0.;
 
@@ -777,7 +780,7 @@ void BVS_dMVP::gibbs_SigmaRho(
 
     SigmaRho.fill(0.);
 
-    // arma::mat U = Z - dataclass.X * betas;
+    U = Z - dataclass.X * betas;
     arma::mat Sigma = U.t() * U;
     Sigma.diag() += 1.0;
 

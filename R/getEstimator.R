@@ -48,10 +48,12 @@ getEstimator <- function(object, estimator = "gamma", Pmax = 0,
   if (Pmax < 0 || Pmax > 1) {
     message("NOTE: The argument Pmax is invalid!")
   }
+  
+  burnin <- object$input$burnin / object$input$thin
 
   if (estimator %in% c("gamma", "beta")) {
-    # estimate <- matrix(colMeans(object$output$gammas[-c(1:burnin), ]), ncol = L)
-    estimate <- object$output$post$gammas
+    estimate <- matrix(colMeans(object$output$gammas[-c(1:burnin), ]), ncol = L)
+    # estimate <- object$output$post$gammas
     # estimate <- rbind(1, estimate)
     gammas <- estimate
     if (Pmax > 0) {
@@ -61,8 +63,8 @@ getEstimator <- function(object, estimator = "gamma", Pmax = 0,
   }
 
   if (estimator == "beta") {
-    # estimate <- matrix(colMeans(object$output$betas[-c(1:burnin), ]), ncol = L)
-    estimate <- object$output$post$betas
+    estimate <- matrix(colMeans(object$output$betas[-c(1:burnin), ]), ncol = L)
+    # estimate <- object$output$post$betas
 
     if (type %in% c("marginal", "conditional")) {
       if (type == "conditional") {

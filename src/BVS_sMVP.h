@@ -134,7 +134,7 @@ private:
         const arma::mat& SigmaRho,
         const JunctionTree& jt,
         // arma::mat& U,
-        arma::mat& RhoU,
+        const arma::mat& RhoU,
         const double tau0Sq,
         const double tauSq,
         const arma::mat& Z,

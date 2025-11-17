@@ -617,15 +617,15 @@ Rcpp::List run_mcmc(
     output_mcmc["gammas"] = gamma_mcmc;
     output_mcmc["gamma_acc_rate"] = ((double)gamma_acc_count) / ((double)nIter);
     // arma::mat gamma_post_mean = arma::zeros<arma::mat>(arma::size(gamma_post));
-    arma::mat gamma_post_mean = arma::conv_to<arma::mat>::from(gamma_post) / ((double)(nIter - burnin));
+    arma::mat gamma_post_mean = arma::conv_to<arma::mat>::from(gamma_post) / ((double)(nIter - burnin + 1));
 
     output_mcmc["loglikelihood"] = loglikelihood_mcmc;
     output_mcmc["tauSq"] = tauSq_mcmc;
     output_mcmc["sigmaSq"] = sigmaSq_mcmc;
 
-    kappa_post /= ((double)(nIter - burnin));
-    beta_post /= ((double)(nIter - burnin));
-    sigmaSq_post /= ((double)(nIter - burnin));
+    kappa_post /= ((double)(nIter - burnin + 1));
+    beta_post /= ((double)(nIter - burnin + 1));
+    sigmaSq_post /= ((double)(nIter - burnin + 1));
     output_mcmc["post"] = Rcpp::List::create(
                               Rcpp::Named("kappa") = kappa_post,
                               Rcpp::Named("betas") = beta_post,
