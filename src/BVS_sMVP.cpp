@@ -1326,9 +1326,10 @@ void BVS_sMVP::sampleZ(
 
             // }
         }
-        // mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
+        // TODO: does this IG(,) make sense, since the 1st parameter will be large if L is large, but Rinv(k,k) should always be around 1
+        mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
         // TODO: design a M-H sampler for D
-        mutantD(k, k) = std::sqrt(Psi(k, k)); 
+        // mutantD(k, k) = std::sqrt(Psi(k, k)); 
     }
 
     // transform to Z in the reparametrized space

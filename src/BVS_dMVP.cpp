@@ -1063,10 +1063,10 @@ void BVS_dMVP::sampleZ(
         // {
         //     throw std::runtime_error(" Negative parameter in sampleZ Rinv(k, k)");
         // }
-
-        // mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
+        // TODO: does this IG(,) make sense, since the 1st parameter will be large if L is large, but Rinv(k,k) should always be around 1
+        mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
         // TODO: design a M-H sampler for D
-        mutantD(k, k) = std::sqrt(Psi(k, k));
+        // mutantD(k, k) = std::sqrt(Psi(k, k));
         // std::cout << "...k=" << k << "; mutantD(k, k)=" << mutantD(k, k) << "; Rinv(k, k)=" << Rinv(k, k)  << "\n";
     }
 
