@@ -7,7 +7,7 @@
 * Add hierarchical related regressions (HRR)
 * Fixed bugs in all functions `sampleGammaProposalRatio()`
 
-* TODO: Perhaps still bug in BVS_dMVP
+* TODO: Perhaps still bug in BVS_dMVP, but check BVS_sMVP first, since BVS_SSUR works now.
 
 * TODO: for (multivariate) probit model, try sample betas via ARMS
 

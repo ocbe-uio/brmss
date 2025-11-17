@@ -11,6 +11,7 @@
 #include "BVS_SSUR.h"
 #include "BVS_iMVP.h"
 #include "BVS_dMVP.h"
+#include "BVS_sMVP.h"
 
 #ifdef _OPENMP
 extern omp_lock_t RNGlock; /*defined in global.h*/
@@ -23,6 +24,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 
+// [[Rcpp::plugins(openmp)]]
 
 //' Main function implemented in C++ for the MCMC loop
 //'
@@ -578,7 +580,26 @@ Rcpp::List run_mcmc(
             break;
 
         case Variance_Prior_Type::HIW :
-            throw std::runtime_error("Not yet implemented mgaussian with HIW!");
+            BVS_sMVP::mcmc(
+                nIter,
+                burnin,
+                thin,
+                betas,
+                gammas,
+                gammaProposal,
+                gammaSampler,
+                hyperpar,
+                dataclass,
+
+                sigmaSq_mcmc,
+                beta_mcmc,
+                beta_post,
+                gamma_mcmc,
+                gamma_post,
+                gamma_acc_count,
+                loglikelihood_mcmc,
+                tauSq_mcmc
+            );
             break;
 
         }
