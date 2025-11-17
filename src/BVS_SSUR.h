@@ -151,11 +151,8 @@ private:
     static double logPBetaMask(
         const arma::mat& betas,
         const arma::umat& gammas,
-        const arma::mat& SigmaRho,
-        const arma::mat& RhoU,
         const double tau0Sq,
-        const double tauSq,
-        const DataClass &dataclass
+        const double tauSq
     );
 
     static double gibbs_betaK(

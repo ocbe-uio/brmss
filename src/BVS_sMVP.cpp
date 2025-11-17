@@ -255,7 +255,7 @@ void BVS_sMVP::sampleGamma(
     const double tauSq,
     const arma::mat& SigmaRho,
     const JunctionTree& jt,
-    arma::mat& RhoU,
+    const arma::mat& RhoU,
 
     const arma::mat& Z,
     const arma::mat& D,
@@ -336,9 +336,12 @@ void BVS_sMVP::sampleGamma(
         dataclass
     );
 
+    // the following proposedD was tested not good for MH
+    // arma::mat proposedZ = Z;
+    // arma::mat proposedD = D;
+    // sampleZ(proposedZ, proposedD, proposedBeta, SigmaRho, dataclass);
+
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
-    // arma::vec proposedLikelihood = loglik;
-    // double loglik0 = logLikelihood( betas, RhoU, SigmaRho, dataclass );
     double proposedLikelihood = logLikelihood( proposedBeta, D, dataclass );
 
     double logLikelihoodRatio = proposedLikelihood - log_likelihood;
@@ -354,7 +357,7 @@ void BVS_sMVP::sampleGamma(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
-        RhoU = proposedRhoU;
+        // RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -395,7 +398,7 @@ void BVS_sMVP::sampleGammaProposalRatio(
     const double tauSq,
     const arma::mat& SigmaRho,
     const JunctionTree& jt,
-    arma::mat& RhoU,
+    const arma::mat& RhoU,
 
     const arma::mat& Z,
     const arma::mat& D,
@@ -489,9 +492,12 @@ void BVS_sMVP::sampleGammaProposalRatio(
         dataclass
     );
 
+    // the following proposedD was tested not good for MH
+    // arma::mat proposedZ = Z;
+    // arma::mat proposedD = D;
+    // sampleZ(proposedZ, proposedD, proposedBeta, SigmaRho, dataclass);
+
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
-    // arma::vec proposedLikelihood = loglik;
-    // double loglik0 = logLikelihood( betas, RhoU, SigmaRho, dataclass );
     double proposedLikelihood = logLikelihood( proposedBeta, D, dataclass );
 
     double logLikelihoodRatio = proposedLikelihood - log_likelihood;
@@ -513,7 +519,7 @@ void BVS_sMVP::sampleGammaProposalRatio(
         logP_gamma = proposedGammaPrior;
         log_likelihood = proposedLikelihood;
         betas = proposedBeta;
-        RhoU = proposedRhoU;
+        // RhoU = proposedRhoU;
 
         ++gamma_acc_count;
     }
@@ -1320,15 +1326,9 @@ void BVS_sMVP::sampleZ(
 
             // }
         }
-
-        // if(Rinv(k, k) <= 0 )
-        // {
-        //     throw std::runtime_error(" Negative parameter in sampleZ Rinv(k, k)");
-        // }
-
-        mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
-        // mutantD(k, k) = D(k, k);
-        // std::cout << "...k=" << k << "; mutantD(k, k)=" << mutantD(k, k) << "; Rinv(k, k)=" << Rinv(k, k)  << "\n";
+        // mutantD(k, k) = std::sqrt( BVS_subfunc::randIGamma( (double)(L + 1)/2.0, Rinv(k, k)/2.0 ) );
+        // TODO: design a M-H sampler for D
+        mutantD(k, k) = std::sqrt(Psi(k, k)); 
     }
 
     // transform to Z in the reparametrized space

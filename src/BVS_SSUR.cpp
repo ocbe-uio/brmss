@@ -477,8 +477,8 @@ void BVS_SSUR::sampleGammaProposalRatio(
     double logLikelihoodRatio = proposedLikelihood - log_likelihood;
 
     // update density of beta priors
-    double logP_beta = logPBetaMask( betas, gammas, SigmaRho, RhoU, tau0Sq, tauSq, dataclass );
-    double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, SigmaRho, proposedRhoU, tau0Sq, tauSq, dataclass );
+    double logP_beta = logPBetaMask( betas, gammas, tau0Sq, tauSq );
+    double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, tau0Sq, tauSq );
     double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
@@ -629,15 +629,12 @@ void BVS_SSUR::gibbs_betas(
 double BVS_SSUR::logPBetaMask(
     const arma::mat& betas,
     const arma::umat& gammas,
-    const arma::mat& SigmaRho,
-    const arma::mat& RhoU,
     const double tau0Sq,
-    const double tauSq,
-    const DataClass &dataclass)
+    const double tauSq)
 {
     double logP = 0.;
 
-    unsigned int L = dataclass.y.n_cols;
+    unsigned int L = betas.n_cols;
     arma::uvec singleIdx_k(1);
 
 

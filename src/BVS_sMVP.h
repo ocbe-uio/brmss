@@ -63,7 +63,7 @@ private:
         const double tauSq,
         const arma::mat& SigmaRho,
         const JunctionTree& jt,
-        arma::mat& RhoU,
+        const arma::mat& RhoU,
 
         const arma::mat& Z,
         const arma::mat& D,
@@ -83,7 +83,7 @@ private:
         const double tauSq,
         const arma::mat& SigmaRho,
         const JunctionTree& jt,
-        arma::mat& RhoU,
+        const arma::mat& RhoU,
 
         const arma::mat& Z,
         const arma::mat& D,
