@@ -93,7 +93,10 @@ plotBrier <- function(dat, datMCMC,
     pred.prob <- 1 - Surv.prob
 
     # other competing survival models
-    x.names <- paste0("X", 1:p)
+    if (p > 10) {
+      message("Note: Classic survival models only use the first 10 covariates.")
+    }
+    x.names <- paste0("X", 1:min(p, 10))
     formula.tmp <- as.formula(paste0("Surv(time, event) ~ ", paste0(x.names, collapse = "+")))
     fitCox <- survival::coxph(formula.tmp, data = survObj, y = TRUE, x = TRUE)
     survfit0 <- survival::survfit(fitCox, survObj.new) # data.frame(x01=survObj.new$x01,x02=survObj.new$x02))
