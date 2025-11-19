@@ -50,24 +50,7 @@ private:
     static void sampleGamma(
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
-        arma::mat& logP_gamma,
-        unsigned int& gamma_acc_count,
-        arma::vec& loglik,
-
-        const armsParmClass& armsPar,
-        const hyperparClass& hyperpar,
-
-        arma::mat& betas,
-        double kappa,
-        double tau0Sq,
-        arma::vec& tauSq,
-
-        const DataClass &dataclass
-    );
-
-    static void sampleGammaProposalRatio(
-        arma::umat& gammas,
-        Gamma_Sampler_Type gamma_sampler,
+        const std::string& gammaProposal,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
         arma::vec& loglik,

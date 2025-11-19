@@ -111,12 +111,11 @@ void BVS_iMVP::mcmc(
 
         // std::cout << "...debug16\n";
         // update \gammas -- variable selection indicators
-        if (gammaProposal == "simple")
-        {
-            sampleGamma(
+        sampleGamma(
                 gammas,
                 gammaSampler,
                 gammaGibbs,
+                gammaProposal,
                 mrfG,
                 mrfG_weights,
                 logP_gamma,
@@ -128,28 +127,8 @@ void BVS_iMVP::mcmc(
                 tauSq,
                 Z,
                 dataclass
-            );
-        }
-        else
-        {
-            sampleGammaProposalRatio(
-                gammas,
-                gammaSampler,
-                gammaGibbs,
-                mrfG,
-                mrfG_weights,
-                logP_gamma,
-                gamma_acc_count,
-                log_likelihood,
-                hyperpar,
-                betas,
-                tau0Sq,
-                tauSq,
-                Z,
-                dataclass
-            );
-
-        }
+        );
+        
 
         // std::cout << "...debug18\n";
         betas.elem(arma::find(gammas == 0)).fill(0.);
@@ -462,196 +441,7 @@ void BVS_iMVP::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
     Gamma_Gibbs_Type gammaGibbs,
-    const arma::umat& mrfG,
-    const arma::vec& mrfG_weights,
-    arma::mat& logP_gamma,
-    unsigned int& gamma_acc_count,
-    double& log_likelihood,
-    const hyperparClass& hyperpar,
-
-    arma::mat& betas,
-    const double tau0Sq,
-    const double tauSq,
-
-    const arma::mat& Z,
-    const DataClass &dataclass)
-{
-
-    // std::cout << "...debug21\n";
-    arma::umat proposedGamma = gammas; // copy the original gammas and later change the address of the copied one
-    arma::mat proposedGammaPrior;
-    arma::uvec updateIdx;
-
-    double logProposalRatio = 0;
-
-    unsigned int N = Z.n_rows;
-    unsigned int p = gammas.n_rows - 1;
-    unsigned int L = gammas.n_cols;
-
-    // define static variables for global updates for the use of bandit algorithm
-    // initial value 0.5 here forces shrinkage toward 0 or 1
-    static arma::mat banditAlpha = arma::mat(p, L, arma::fill::value(0.5));
-    static arma::mat banditBeta = arma::mat(p, L, arma::fill::value(0.5));
-
-    // std::cout << "...debug22\n";
-    // decide on one component
-    unsigned int componentUpdateIdx = 0;
-    if (L > 1)
-    {
-        componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
-    }
-    arma::uvec singleIdx_k = { componentUpdateIdx };
-
-    // std::cout << "...debug23\n";
-    // Update the proposed Gamma with 'updateIdx' renewed via its address
-    switch( gamma_sampler )
-    {
-    case Gamma_Sampler_Type::bandit:
-        logProposalRatio += BVS_subfunc::gammaBanditProposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx, banditAlpha );
-        break;
-
-    case Gamma_Sampler_Type::mc3:
-        logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
-        break;
-    }
-
-    // std::cout << "...debug24\n";
-    // note only one outcome is updated
-    // update log probabilities
-
-    // compute logProposalGammaRatio, i.e. proposedGammaPrior - logP_gamma
-    double logProposalGammaRatio = 0.;
-
-    proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
-
-    if(gammaGibbs == Gamma_Gibbs_Type::mrf)
-    {
-        // update gammas via MRF prior
-
-        // log-ratio/difference from the 1st-order term in MRF prior
-        logProposalGammaRatio = hyperpar.mrfA * ( (double)(arma::accu(proposedGamma.submat(1+updateIdx, singleIdx_k))) -
-                                (double)(arma::accu(gammas.submat(1+updateIdx, singleIdx_k))) );
-
-        arma::uvec updateIdxGlobal = updateIdx + p * componentUpdateIdx;
-        arma::uvec updateIdxMRF_common = arma::intersect(updateIdxGlobal, mrfG); 
-
-        // log-ratio/difference from the 2nd-order term in MRF prior
-        if((updateIdxMRF_common.n_elem > 0) && (hyperpar.mrfB > 0))
-        {
-            // arma::umat proposedGamma = proposedGamma;
-            // proposedGamma.shed_row(0);
-            // arma::umat gammas = gammas;
-            // gammas.shed_row(0);
-            unsigned int mrfG_edge_n = mrfG.n_rows;
-
-            #ifdef _OPENMP
-            #pragma omp parallel for default(shared) reduction(+:logProposalGammaRatio)
-            #endif
-
-            for(unsigned int i=0; i<mrfG_edge_n; ++i)
-            {
-                if( mrfG(i, 0) != mrfG(i, 1))
-                {
-
-                    logProposalGammaRatio += hyperpar.mrfB * 2.0 * mrfG_weights(i) *
-                        ((double)(proposedGamma(mrfG(i, 0)) * proposedGamma(mrfG(i, 1))) - 
-                        (double)(gammas(mrfG(i, 0)) * gammas(mrfG(i, 1))));
-                }
-                else
-                {
-                    logProposalGammaRatio += hyperpar.mrfB * mrfG_weights(i) * 
-                        ((double)(proposedGamma(mrfG(i, 0))) - (double)(gammas(mrfG(i, 0))));
-                }
-
-            }
-        }
-    }
-    else
-    {
-        // update gammas via Bernoulli-beta prior
-        for(auto i: updateIdx)
-        {
-            // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
-            //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
-            double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                                hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
-            proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-            logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
-        }
-    }
-    
-    // std::cout << "...debug25\n";
-    arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
-
-    gibbs_betaK(
-        componentUpdateIdx,
-        proposedBeta,
-        proposedGamma,
-        tau0Sq,
-        tauSq,
-        Z,
-        dataclass
-    );
-
-    // std::cout << "...debug26\n";
-
-    // compute logLikelihoodRatio
-    double proposedLikelihood = logLikelihood( proposedBeta, dataclass );
-
-    // std::cout << "...debug27\n";
-    double logLikelihoodRatio = proposedLikelihood - log_likelihood;
-
-    // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
-    double logAccProb = logProposalGammaRatio +
-                        logLikelihoodRatio +
-                        logProposalRatio;
-
-    // // std::cout << "...debug logAccProb=" << logAccProb <<
-    // "; proposedLikelihood=" << proposedLikelihood <<
-    // "; log_likelihood=" << log_likelihood <<
-    // "; logProposalGammaRatio=" << logProposalGammaRatio <<
-    // "; logProposalRatio=" << logProposalRatio << "\n";
-
-    if( std::log(R::runif(0,1)) < logAccProb )
-    {
-        gammas = proposedGamma;
-        logP_gamma = proposedGammaPrior;
-        log_likelihood = proposedLikelihood;
-        betas = proposedBeta;
-        // sampleZ(Z, betas,  dataclass);
-
-        ++gamma_acc_count;
-    }
-
-    // std::cout << "...debug28\n";
-    // after A/R, update bandit Related variables
-    if( gamma_sampler == Gamma_Sampler_Type::bandit )
-    {
-        // banditLimit to control the beta prior with relatively large variance
-        double banditLimit = (double)(N);
-        double banditIncrement = 1.;
-
-        for(auto iter: updateIdx)
-        {
-            // FINITE UPDATE
-            if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
-            {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
-            }
-
-        }
-    }
-
-    // return gammas;
-}
-
-
-void BVS_iMVP::sampleGammaProposalRatio(
-    arma::umat& gammas,
-    Gamma_Sampler_Type gamma_sampler,
-    Gamma_Gibbs_Type gammaGibbs,
+    const std::string& gammaProposal,
     const arma::umat& mrfG,
     const arma::vec& mrfG_weights,
     arma::mat& logP_gamma,
@@ -774,7 +564,8 @@ void BVS_iMVP::sampleGammaProposalRatio(
     arma::mat proposedBeta = betas;
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
-    logProposalRatio -= gibbs_betaK(
+    double logProposalRatioBeta = 0.;
+    logProposalRatioBeta = gibbs_betaK(
                             componentUpdateIdx,
                             proposedBeta,
                             proposedGamma,
@@ -783,30 +574,34 @@ void BVS_iMVP::sampleGammaProposalRatio(
                             Z,
                             dataclass
                         );
+    double logProposalBetaRatio = 0.;
+    if (gammaProposal == "posterior")
+    {
+        logProposalRatio -= logProposalRatioBeta;
+        logProposalRatio += logP_gibbs_betaK(
+                                componentUpdateIdx,
+                                betas,
+                                gammas,
+                                tau0Sq,
+                                tauSq,
+                                Z,
+                                dataclass
+                            );
+        
+        // update density of beta priors
+        double logP_beta = logPBetaMask( betas, gammas, tau0Sq, tauSq );
+        double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, tau0Sq, tauSq );
 
-    logProposalRatio += logP_gibbs_betaK(
-                            componentUpdateIdx,
-                            betas,
-                            gammas,
-                            tau0Sq,
-                            tauSq,
-                            Z,
-                            dataclass
-                        );
+        // double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta.col(componentUpdateIdx), SigmaRho(componentUpdateIdx,componentUpdateIdx)) -
+        //                            BVS_subfunc::logPDFNormal(betas.col(componentUpdateIdx), SigmaRho(componentUpdateIdx,componentUpdateIdx));
+        logProposalBetaRatio = proposedBetaPrior - logP_beta;
+    }
 
     // std::cout << "...debug26\n";
 
     // compute logLikelihoodRatio
     double proposedLikelihood = logLikelihood( proposedBeta, dataclass );
-
-    // std::cout << "...debug27\n";
     double logLikelihoodRatio = proposedLikelihood - log_likelihood;
-
-    // update density of beta priors
-    double logP_beta = logPBetaMask( betas, gammas, tau0Sq, tauSq );
-    double proposedBetaPrior = logPBetaMask( proposedBeta, proposedGamma, tau0Sq, tauSq );
-
-    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
     double logAccProb = logProposalGammaRatio +

@@ -82,28 +82,10 @@ void BVS_probit::mcmc(
         // update latent responses
 // std::cout << "...debug3\n";
         // update \gammas -- variable selection indicators
-        if (gammaProposal == "simple")
-        {
-            sampleGamma(
+        sampleGamma(
                 gammas,
                 gammaSampler,
-                logP_gamma,
-                gamma_acc_count,
-                loglik,
-                hyperpar,
-                betas,
-                z,
-                tau0Sq,
-                tauSq,
-
-                dataclass
-            );
-        }
-        else
-        {
-            sampleGammaProposalRatio(
-                gammas,
-                gammaSampler,
+                gammaProposal,
                 logP_gamma,
                 gamma_acc_count,
                 logP_beta,
@@ -115,8 +97,8 @@ void BVS_probit::mcmc(
                 tauSq,
 
                 dataclass
-            );
-        }
+        );
+
 // std::cout << "...debug4\n";
         // update \betas
 
@@ -194,142 +176,10 @@ void BVS_probit::loglikelihood(
 
 }
 
-
 void BVS_probit::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
-    arma::mat& logP_gamma,
-    unsigned int& gamma_acc_count,
-    arma::vec& loglik,
-    const hyperparClass& hyperpar,
-
-    arma::mat& betas,
-    const arma::vec& z,
-    double tau0Sq,
-    double tauSq,
-
-    const DataClass &dataclass)
-{
-// std::cout << "...debug31\n";
-    arma::umat proposedGamma = gammas; // copy the original gammas and later change the address of the copied one
-    arma::mat proposedGammaPrior;
-    arma::uvec updateIdx;
-
-    double logProposalRatio = 0;
-
-    unsigned int N = dataclass.y.n_rows;
-    unsigned int p = gammas.n_rows - 1;
-    unsigned int L = gammas.n_cols;
-
-    // define static variables for global updates for the use of bandit algorithm
-    // initial value 0.5 here forces shrinkage toward 0 or 1
-    static arma::mat banditAlpha = arma::mat(p, L, arma::fill::value(0.5));
-    static arma::mat banditBeta = arma::mat(p, L, arma::fill::value(0.5));
-
-    // decide on one component
-    unsigned int componentUpdateIdx = 0;
-    // if (L > 1)
-    // {
-    //     componentUpdateIdx = static_cast<unsigned int>( R::runif( 0, L ) );
-    // }
-    arma::uvec singleIdx_k = { componentUpdateIdx };
-// std::cout << "...debug32\n";
-    // Update the proposed Gamma with 'updateIdx' renewed via its address
-    switch( gamma_sampler )
-    {
-    case Gamma_Sampler_Type::bandit:
-        logProposalRatio += BVS_subfunc::gammaBanditProposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx, banditAlpha );
-        break;
-
-    case Gamma_Sampler_Type::mc3:
-        logProposalRatio += BVS_subfunc::gammaMC3Proposal( p, proposedGamma, gammas, updateIdx, componentUpdateIdx );
-        break;
-    }
-// std::cout << "...debug33\n";
-    // note only one outcome is updated
-    // update log probabilities
-
-    // compute logProposalGammaRatio, i.e. proposedGammaPrior - logP_gamma
-    double logProposalGammaRatio = 0.;
-
-    proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
-
-    // TODO: check if pi0 is needed
-    // double pi = pi0;
-
-    for(auto i: updateIdx)
-    {
-        // the following pi is wrong for pi_j; see below
-        // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
-        //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
-        double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
-                             hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
-        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
-    }
-// std::cout << "...debug34\n";
-    arma::mat proposedBeta = betas;
-    proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
-
-    (void)gibbs_beta_probit(
-        proposedBeta,
-        proposedGamma,
-        tau0Sq,
-        tauSq,
-        z,
-        dataclass
-    );
-
-    // arma::vec proposedZ = zbinprobit(proposedBeta, dataclass);
-// std::cout << "...debug35\n";
-    // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
-    arma::vec proposedLikelihood = loglik;
-    loglikelihood( betas, dataclass, loglik );
-    loglikelihood( proposedBeta, dataclass, proposedLikelihood );
-// std::cout << "...debug36\n";
-    double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
-
-    // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
-    double logAccProb = logProposalGammaRatio +
-                        logLikelihoodRatio +
-                        logProposalRatio;
-// std::cout << "...debug37\n";
-    if( std::log(R::runif(0,1)) < logAccProb )
-    {
-        gammas = proposedGamma;
-        logP_gamma = proposedGammaPrior;
-        loglik = proposedLikelihood;
-        betas = proposedBeta;
-
-        ++gamma_acc_count;
-    }
-// std::cout << "...debug38\n";
-    // after A/R, update bandit Related variables
-    if( gamma_sampler == Gamma_Sampler_Type::bandit )
-    {
-        // banditLimit to control the beta prior with relatively large variance
-        double banditLimit = (double)(N);
-        double banditIncrement = 1.;
-
-        for(auto iter: updateIdx)
-        {
-            // FINITE UPDATE
-            if( banditAlpha(iter,componentUpdateIdx) + banditBeta(iter,componentUpdateIdx) <= banditLimit )
-            {
-                banditAlpha(iter,componentUpdateIdx) += banditIncrement * gammas(1+iter,componentUpdateIdx);
-                banditBeta(iter,componentUpdateIdx) += banditIncrement * (1-gammas(1+iter,componentUpdateIdx));
-            }
-
-        }
-    }
-// std::cout << "...debug39\n";
-
-    // return gammas;
-}
-
-void BVS_probit::sampleGammaProposalRatio(
-    arma::umat& gammas,
-    Gamma_Sampler_Type gamma_sampler,
+    const std::string& gammaProposal,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     double& logP_beta,
@@ -404,7 +254,8 @@ void BVS_probit::sampleGammaProposalRatio(
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
     // // Note that intercept is updated here
-    proposedBetaPrior = gibbs_beta_probit(
+    double logProposalRatioBeta = 0.;
+    logProposalRatioBeta = gibbs_beta_probit(
                             proposedBeta,
                             proposedGamma,
                             tau0Sq,
@@ -412,10 +263,23 @@ void BVS_probit::sampleGammaProposalRatio(
                             z,
                             dataclass
                         );
-    // arma::vec proposedZ = zbinprobit(proposedBeta, dataclass);
+    double logProposalBetaRatio = 0.;
+    if (gammaProposal == "posterior")
+    {
+        logProposalRatio -= logProposalRatioBeta;
+        logProposalRatio += logP_gibbs_beta_probit(
+                                betas,
+                                gammas,
+                                tau0Sq,
+                                tauSq,
+                                z,
+                                dataclass
+                            );
 
-    double logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq) - BVS_subfunc::logPDFNormal(betas, tauSq);
-    double logProposalBetaRatio = proposedBetaPrior - logP_beta;
+        proposedBetaPrior = BVS_subfunc::logPDFNormal(proposedBeta, tauSq);// - BVS_subfunc::logPDFNormal(betas, tauSq);
+        logProposalBetaRatio = proposedBetaPrior - logP_beta;
+    }
+
 
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
@@ -429,7 +293,8 @@ void BVS_probit::sampleGammaProposalRatio(
     double logAccProb = logProposalGammaRatio +
                         logLikelihoodRatio +
                         logProposalRatio +
-                        logPriorBetaRatio + logProposalBetaRatio;
+                        // logPriorBetaRatio + 
+                        logProposalBetaRatio;
 
     if( std::log(R::runif(0,1)) < logAccProb )
     {
@@ -492,6 +357,36 @@ double BVS_probit::gibbs_beta_probit(
     arma::vec mu = W * X_mask.t() * z;
     arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
     betas(VS_idx) = beta_mask;
+
+    double logP = BVS_subfunc::logPDFNormal( beta_mask, mu, W );
+
+    return logP;
+}
+
+double BVS_probit::logP_gibbs_beta_probit(
+    const arma::mat& betas,
+    const arma::umat& gammas,
+    double tau0Sq,
+    double tauSq,
+    const arma::vec& z,
+    const DataClass& dataclass
+)
+{
+    arma::uvec VS_idx = arma::find(gammas);
+    arma::mat X_mask = dataclass.X.cols(VS_idx);
+
+    arma::vec diag_elements = arma::vec(VS_idx.n_elem, arma::fill::value(1./tauSq));
+    diag_elements[0] = 1./tau0Sq;
+
+    arma::mat invW = X_mask.t() * X_mask + arma::diagmat(diag_elements);
+    arma::mat W;
+    if( !arma::inv_sympd( W,  invW ) )
+    {
+        arma::inv(W, invW, arma::inv_opts::allow_approx);
+    }
+
+    arma::vec mu = W * X_mask.t() * z;
+    arma::vec beta_mask = BVS_subfunc::randMvNormal( mu, W );
 
     double logP = BVS_subfunc::logPDFNormal( beta_mask, mu, W );
 

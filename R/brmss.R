@@ -209,7 +209,7 @@ brmss <- function(y, x,
     for (j in 1:NCOL(x)) {
       hyperpar$mrfG <- rbind( 
         hyperpar$mrfG, 
-        t(combn(j + (1:L - 1) * NCOL(x), 2)))
+        t(combn(j + (1:L - 1) * (NCOL(x) + 1), 2)))
     }
     hyperpar$mrfG.weights <- rep(1, NROW(hyperpar$mrfG))
   } else {

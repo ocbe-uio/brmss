@@ -54,25 +54,7 @@ private:
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
         Gamma_Gibbs_Type gammaGibbs,
-        const arma::umat& mrfG,
-        const arma::vec& mrfG_weights,
-        arma::mat& logP_gamma,
-        unsigned int& gamma_acc_count,
-        double& log_likelihood,
-        const hyperparClass& hyperpar,
-
-        arma::mat& betas,
-        const double tau0Sq,
-        const double tauSq,
-
-        const arma::mat& Z,
-        const DataClass &dataclass
-    );
-
-    static void sampleGammaProposalRatio(
-        arma::umat& gammas,
-        Gamma_Sampler_Type gamma_sampler,
-        Gamma_Gibbs_Type gammaGibbs,
+        const std::string& gammaProposal,
         const arma::umat& mrfG,
         const arma::vec& mrfG_weights,
         arma::mat& logP_gamma,

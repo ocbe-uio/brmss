@@ -53,26 +53,7 @@ private:
     static void sampleGamma(
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
-        arma::mat& logP_gamma,
-        unsigned int& gamma_acc_count,
-        double& log_likelihood,
-        const hyperparClass& hyperpar,
-
-        arma::mat& betas,
-        const double tau0Sq,
-        const double tauSq,
-        const arma::mat& SigmaRho,
-        const JunctionTree& jt,
-        const arma::mat& RhoU,
-
-        const arma::mat& Z,
-        const arma::mat& D,
-        const DataClass &dataclass
-    );
-
-    static void sampleGammaProposalRatio(
-        arma::umat& gammas,
-        Gamma_Sampler_Type gamma_sampler,
+        const std::string& gammaProposal,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
         double& log_likelihood,
