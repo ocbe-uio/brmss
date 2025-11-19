@@ -14,6 +14,9 @@ void BVS_iMVP::mcmc(
     arma::umat& gammas,
     const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
+    Gamma_Gibbs_Type gammaGibbs,
+    const arma::umat& mrfG,
+    const arma::vec& mrfG_weights,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
 
@@ -113,6 +116,9 @@ void BVS_iMVP::mcmc(
             sampleGamma(
                 gammas,
                 gammaSampler,
+                gammaGibbs,
+                mrfG,
+                mrfG_weights,
                 logP_gamma,
                 gamma_acc_count,
                 log_likelihood,
@@ -129,6 +135,9 @@ void BVS_iMVP::mcmc(
             sampleGammaProposalRatio(
                 gammas,
                 gammaSampler,
+                gammaGibbs,
+                mrfG,
+                mrfG_weights,
                 logP_gamma,
                 gamma_acc_count,
                 log_likelihood,
@@ -452,6 +461,9 @@ double BVS_iMVP::logP_gibbs_betaK(
 void BVS_iMVP::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
+    Gamma_Gibbs_Type gammaGibbs,
+    const arma::umat& mrfG,
+    const arma::vec& mrfG_weights,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     double& log_likelihood,
@@ -512,16 +524,62 @@ void BVS_iMVP::sampleGamma(
 
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
-    for(auto i: updateIdx)
+    if(gammaGibbs == Gamma_Gibbs_Type::mrf)
     {
-        // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
-        //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
-        double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                             hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
-        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
-    }
+        // update gammas via MRF prior
 
+        // log-ratio/difference from the 1st-order term in MRF prior
+        logProposalGammaRatio = hyperpar.mrfA * ( (double)(arma::accu(proposedGamma.submat(1+updateIdx, singleIdx_k))) -
+                                (double)(arma::accu(gammas.submat(1+updateIdx, singleIdx_k))) );
+
+        arma::uvec updateIdxGlobal = updateIdx + p * componentUpdateIdx;
+        arma::uvec updateIdxMRF_common = arma::intersect(updateIdxGlobal, mrfG); 
+
+        // log-ratio/difference from the 2nd-order term in MRF prior
+        if((updateIdxMRF_common.n_elem > 0) && (hyperpar.mrfB > 0))
+        {
+            // arma::umat proposedGamma = proposedGamma;
+            // proposedGamma.shed_row(0);
+            // arma::umat gammas = gammas;
+            // gammas.shed_row(0);
+            unsigned int mrfG_edge_n = mrfG.n_rows;
+
+            #ifdef _OPENMP
+            #pragma omp parallel for default(shared) reduction(+:logProposalGammaRatio)
+            #endif
+
+            for(unsigned int i=0; i<mrfG_edge_n; ++i)
+            {
+                if( mrfG(i, 0) != mrfG(i, 1))
+                {
+
+                    logProposalGammaRatio += hyperpar.mrfB * 2.0 * mrfG_weights(i) *
+                        ((double)(proposedGamma(mrfG(i, 0)) * proposedGamma(mrfG(i, 1))) - 
+                        (double)(gammas(mrfG(i, 0)) * gammas(mrfG(i, 1))));
+                }
+                else
+                {
+                    logProposalGammaRatio += hyperpar.mrfB * mrfG_weights(i) * 
+                        ((double)(proposedGamma(mrfG(i, 0))) - (double)(gammas(mrfG(i, 0))));
+                }
+
+            }
+        }
+    }
+    else
+    {
+        // update gammas via Bernoulli-beta prior
+        for(auto i: updateIdx)
+        {
+            // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+            //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+            double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
+                                hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
+            proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+            logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
+        }
+    }
+    
     // std::cout << "...debug25\n";
     arma::mat proposedBeta = betas;
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
@@ -593,6 +651,9 @@ void BVS_iMVP::sampleGamma(
 void BVS_iMVP::sampleGammaProposalRatio(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
+    Gamma_Gibbs_Type gammaGibbs,
+    const arma::umat& mrfG,
+    const arma::vec& mrfG_weights,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     double& log_likelihood,
@@ -653,14 +714,60 @@ void BVS_iMVP::sampleGammaProposalRatio(
 
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
-    for(auto i: updateIdx)
+    if(gammaGibbs == Gamma_Gibbs_Type::mrf)
     {
-        // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
-        //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
-        double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
-                             hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
-        proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
+        // update gammas via MRF prior
+
+        // log-ratio/difference from the 1st-order term in MRF prior
+        logProposalGammaRatio = hyperpar.mrfA * ( (double)(arma::accu(proposedGamma.submat(1+updateIdx, singleIdx_k))) -
+                                (double)(arma::accu(gammas.submat(1+updateIdx, singleIdx_k))) );
+
+        arma::uvec updateIdxGlobal = updateIdx + p * componentUpdateIdx;
+        arma::uvec updateIdxMRF_common = arma::intersect(updateIdxGlobal, mrfG); 
+
+        // log-ratio/difference from the 2nd-order term in MRF prior
+        if((updateIdxMRF_common.n_elem > 0) && (hyperpar.mrfB > 0))
+        {
+            // arma::umat proposedGamma = proposedGamma;
+            // proposedGamma.shed_row(0);
+            // arma::umat gammas = gammas;
+            // gammas.shed_row(0);
+            unsigned int mrfG_edge_n = mrfG.n_rows;
+
+            #ifdef _OPENMP
+            #pragma omp parallel for default(shared) reduction(+:logProposalGammaRatio)
+            #endif
+
+            for(unsigned int i=0; i<mrfG_edge_n; ++i)
+            {
+                if( mrfG(i, 0) != mrfG(i, 1))
+                {
+
+                    logProposalGammaRatio += hyperpar.mrfB * 2.0 * mrfG_weights(i) *
+                        ((double)(proposedGamma(mrfG(i, 0)) * proposedGamma(mrfG(i, 1))) - 
+                        (double)(gammas(mrfG(i, 0)) * gammas(mrfG(i, 1))));
+                }
+                else
+                {
+                    logProposalGammaRatio += hyperpar.mrfB * mrfG_weights(i) * 
+                        ((double)(proposedGamma(mrfG(i, 0))) - (double)(gammas(mrfG(i, 0))));
+                }
+
+            }
+        }
+    }
+    else
+    {
+        // update gammas via Bernoulli-beta prior
+        for(auto i: updateIdx)
+        {
+            // double pi = R::rbeta(hyperpar.piA + (double)(proposedGamma(1+i,componentUpdateIdx)),
+            //                      hyperpar.piB + (double)(p) - (double)(proposedGamma(1+i,componentUpdateIdx)));
+            double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
+                                hyperpar.piB + (double)L - (double)(arma::sum(gammas.row(1+i))));
+            proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
+            logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
+        }
     }
 
     // std::cout << "...debug25\n";

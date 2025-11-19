@@ -48,7 +48,7 @@ parameters every tick-th iteration. Default is 1}
 
 \item{gammaProposal}{one of \code{c("simple", "posterior")}}
 
-\item{gammaGibbs}{one of \code{c("none", "independent", "gprior")}. If 
+\item{gammaGibbs}{one of \code{c("none", "independent", "gprior", "mrf")}. If 
 \code{gammaGibbs = "independent"}, it implements the approach in 
 Kuo and Mallick (1998) with gibbs sampling for gammas and with independent 
 spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, it 

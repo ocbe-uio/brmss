@@ -5,6 +5,7 @@
 #'
 #' @name brmss
 #'
+#' @importFrom utils combn
 #' @importFrom Rcpp evalCpp
 #'
 #' @param y response variable. A vector, matrix or dataframe. For survival 
@@ -21,7 +22,7 @@
 #' @param threads number of threads used for parallelization. Default is 1
 #' @param gammaSampler one of \code{c("mc3", "bandit")}
 #' @param gammaProposal one of \code{c("simple", "posterior")}
-#' @param gammaGibbs one of \code{c("none", "independent", "gprior")}. If 
+#' @param gammaGibbs one of \code{c("none", "independent", "gprior", "mrf")}. If 
 #' \code{gammaGibbs = "independent"}, it implements the approach in 
 #' Kuo and Mallick (1998) with gibbs sampling for gammas and with independent 
 #' spike-and-slab priors for betas. If \code{gammaGibbs = "gprior"}, it 
@@ -132,8 +133,8 @@ brmss <- function(y, x,
   }
   
   gammaGibbs <- tolower(gammaGibbs)
-  if (!gammaGibbs %in% c("none", "independent", "gprior")) {
-    stop('Argument "gammaGibbs" must be one of c("none", "independent", "gprior")!')
+  if (!gammaGibbs %in% c("none", "independent", "gprior", "mrf")) {
+    stop('Argument "gammaGibbs" must be one of c("none", "independent", "gprior", "mrf")!')
   }
   
   varPrior <- toupper(varPrior)
@@ -192,6 +193,27 @@ brmss <- function(y, x,
   if (!"psiA" %in% names(hyperpar)) {
     hyperpar$psiA <- 0.1
     hyperpar$psiB <- 10
+  }
+  
+  if (!"mrfA" %in% names(hyperpar)) {
+    hyperpar$mrfA <- -3
+    hyperpar$mrfB <- 0 # 0.01
+  }
+  
+  if ("mrfG" %in% names(hyperpar)) {
+    hyperpar$mrfG.weights <- hyperpar$mrfG[, 3]
+    hyperpar$mrfG <- hyperpar$mrfG[, 1:2]
+  } else if (gammaGibbs == "mrf" && L > 1) {
+    # edges between common variables across different clusters
+    hyperpar$mrfG <- NULL
+    for (j in 1:NCOL(x)) {
+      hyperpar$mrfG <- rbind( 
+        hyperpar$mrfG, 
+        t(combn(j + (1:L - 1) * NCOL(x), 2)))
+    }
+    hyperpar$mrfG.weights <- rep(1, NROW(hyperpar$mrfG))
+  } else {
+    hyperpar$mrfG <- matrix(0, nrow = 2, ncol = 3)
   }
   
   # hyperpar$tauSq <- rep(1, L)

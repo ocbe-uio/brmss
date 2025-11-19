@@ -20,6 +20,9 @@ public:
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
+        Gamma_Gibbs_Type gammaGibbs,
+        const arma::umat& mrfG,
+        const arma::vec& mrfG_weights,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
 
@@ -50,6 +53,9 @@ private:
     static void sampleGamma(
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
+        Gamma_Gibbs_Type gammaGibbs,
+        const arma::umat& mrfG,
+        const arma::vec& mrfG_weights,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
         double& log_likelihood,
@@ -66,6 +72,9 @@ private:
     static void sampleGammaProposalRatio(
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
+        Gamma_Gibbs_Type gammaGibbs,
+        const arma::umat& mrfG,
+        const arma::vec& mrfG_weights,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
         double& log_likelihood,

@@ -139,7 +139,9 @@ Rcpp::List run_mcmc(
         Rcpp::as<double>(hyperparList["pj"]),
         Rcpp::as<double>(hyperparList["nu"]),
         Rcpp::as<double>(hyperparList["psiA"]),
-        Rcpp::as<double>(hyperparList["psiB"])
+        Rcpp::as<double>(hyperparList["psiB"]),
+        Rcpp::as<double>(hyperparList["mrfA"]),
+        Rcpp::as<double>(hyperparList["mrfB"])
     );
 
     // hyperparList = Rcpp::List();  // Clear it by creating a new empty List
@@ -253,6 +255,8 @@ Rcpp::List run_mcmc(
         throw std::runtime_error("Wrong type of gamma_sampler given!");
     }
 
+    arma::umat mrfG;
+    arma::vec mrfG_weights;
     // Gamma Gibbs Sampler for GLM
     Gamma_Gibbs_Type gammaGibbs;
     if ( gamma_gibbs == "none" )
@@ -266,6 +270,12 @@ Rcpp::List run_mcmc(
     else if ( gamma_gibbs == "gprior" )
     {
         gammaGibbs = Gamma_Gibbs_Type::gprior ;
+    }
+    else if ( gamma_gibbs == "mrf" )
+    {
+        gammaGibbs = Gamma_Gibbs_Type::mrf ;
+        mrfG = Rcpp::as<arma::umat>(hyperparList["mrfG"]);
+        mrfG_weights = Rcpp::as<arma::vec>(hyperparList["mrfG.weights"]);
     }
     else
     {
@@ -542,6 +552,9 @@ Rcpp::List run_mcmc(
                 gammas,
                 gammaProposal,
                 gammaSampler,
+                gammaGibbs,
+                mrfG,
+                mrfG_weights,
                 hyperpar,
                 dataclass,
 

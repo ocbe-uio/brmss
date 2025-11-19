@@ -172,6 +172,10 @@ void BVS_gaussian::mcmc(
             throw std::runtime_error("GLM with g-prior has not yet been implemented!");
             break;
 
+        case Gamma_Gibbs_Type::mrf :
+            throw std::runtime_error("GLM with MRF prior has not yet been implemented!");
+            break;
+
         }
 
         // update \betas

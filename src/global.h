@@ -39,7 +39,7 @@ enum class Gamma_Sampler_Type
 
 enum class Gamma_Gibbs_Type
 {
-    none = 1, independent, gprior
+    none = 1, independent, gprior, mrf
 }; // scoped enum
 
 enum class Variance_Prior_Type
@@ -123,6 +123,9 @@ public:
     const double psiA;
     const double psiB;
 
+    const double mrfA;
+    const double mrfB;
+
     // Constructor to initialize the constants
     hyperparClass(
         double piA_,
@@ -146,7 +149,10 @@ public:
 
         double nu_,
         double psiA_,
-        double psiB_
+        double psiB_,
+
+        double mrfA_,
+        double mrfB_
     ) :
         piA(piA_),
         piB(piB_),
@@ -169,7 +175,10 @@ public:
 
         nu(nu_),
         psiA(psiA_),
-        psiB(psiB_)
+        psiB(psiB_),
+
+        mrfA(mrfA_),
+        mrfB(mrfB_)
     {}
 } ;
 
