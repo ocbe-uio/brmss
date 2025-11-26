@@ -298,7 +298,7 @@ void BVS_weibull::sampleGamma(
                                 kappa,
                                 dataclass
                             );
-        logProposalRatio -= logPBeta(
+        logProposalRatio += logPBeta(
                         betas,
                         tauSq[0],
                         kappa,

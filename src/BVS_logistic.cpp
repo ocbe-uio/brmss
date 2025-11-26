@@ -111,6 +111,8 @@ void BVS_logistic::mcmc(
             dataclass
         );
 
+        // logP_beta = BVS_subfunc::logPDFNormal(betas, tauSq);
+
 // std::cout << "...debug5\n";
         // save results for un-thinned posterior mean
         if(m >= burnin)
@@ -256,8 +258,8 @@ void BVS_logistic::sampleGamma(
         logProposalRatio -= logPBeta(proposedBeta, tauSq, dataclass);
         logProposalRatio += logPBeta(betas, tauSq, dataclass);
 
-        proposedBetaPrior = BVS_subfunc::logPDFNormal(proposedBeta, tauSq);// - BVS_subfunc::logPDFNormal(betas, tauSq);
-        logProposalBetaRatio = proposedBetaPrior - logP_beta;
+        logProposalBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta, tauSq) - BVS_subfunc::logPDFNormal(betas, tauSq);
+        // logProposalBetaRatio = proposedBetaPrior - logP_beta;
     }
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
@@ -276,7 +278,7 @@ void BVS_logistic::sampleGamma(
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
-        logP_beta = proposedBetaPrior;
+        // logP_beta = proposedBetaPrior;
         loglik = proposedLikelihood;
         betas = proposedBeta;
 

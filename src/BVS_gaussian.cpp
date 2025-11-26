@@ -330,6 +330,7 @@ void BVS_gaussian::sampleGamma(
                         );
 
         proposedBetaPrior = BVS_subfunc::logPDFNormal(proposedBeta, tauSq[0]);// - BVS_subfunc::logPDFNormal(betas, tauSq[0]);
+        logP_beta = BVS_subfunc::logPDFNormal(betas, tauSq[0]);
         logProposalBetaRatio = proposedBetaPrior - logP_beta;
     }
 
