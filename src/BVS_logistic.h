@@ -57,8 +57,17 @@ private:
         arma::mat& betas,
         double tau0Sq,
         double tauSq,
+        const unsigned int iter,
+        const unsigned int burnin,
 
         const DataClass &dataclass
+    );
+
+    static arma::mat invLambda(
+        const arma::mat& betas,
+        const double tauSq,
+        const arma::uvec& updateIdx,
+        const DataClass& dataclass
     );
 
     static double logPBeta(

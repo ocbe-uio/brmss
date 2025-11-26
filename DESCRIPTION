@@ -1,6 +1,6 @@
 Package: brmss
 Title: Bayesian Regression Models using Spike-and-Slab Priors
-Version: 0.3
+Version: 0.4
 Description: Fit high-dimensional Bayesian linear and nonlinear regression models using independent spike-and-slab priors for full Bayesian inference. A general Metropolis-Hastings algorithm is used to sample the indicator variables of variable selection.
 Authors@R: c(person("Zhi", "Zhao", role=c("aut","cre"), email = "zhi.zhao@medisin.uio.no"))
 Maintainer: Zhi Zhao <zhi.zhao@medisin.uio.no> 
