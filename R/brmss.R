@@ -34,6 +34,10 @@
 #' responses, it can also be \code{IW} for the inverse-Wishart prior (dense 
 #' variance-covariance matrix) or \code{HIW} for the hyper-inverse Wishart 
 #' (sparse precision matrix)
+#' 
+#' @param RW.MH string indicating the type of random-walk variance in MH 
+#' sampling for gamma-beta move, one of 
+#' \code{c("fisher", "adaptive", "symmetric")}
 #' @param initial a list of initial values for parameters "kappa" and "betas"
 #' @param arms.list a list of parameters for the ARMS algorithm
 #'
@@ -83,6 +87,7 @@ brmss <- function(y, x,
                   gammaProposal = "simple",
                   gammaGibbs = "none",
                   varPrior = "IG",
+                  RW.MH = "adaptive",
                   initial = NULL,
                   arms.list = NULL) {
   # Validation
@@ -140,6 +145,11 @@ brmss <- function(y, x,
   varPrior <- toupper(varPrior)
   if (!varPrior %in% c("IG", "IW", "HIW")) {
     stop('Argument "varPrior" must be one of c("IG", "IW", "HIW")!')
+  }
+  
+  RW.MH <- tolower(RW.MH)
+  if (!RW.MH %in% c("fisher", "adaptive", "symmetric")) {
+    stop('Argument "RW.MH" must be one of c("fisher", "adaptive", "symmetric")!')
   }
 
   # set hyperparamters of all piors
@@ -274,6 +284,7 @@ brmss <- function(y, x,
     gammaProposal,
     gammaGibbs,
     varPrior,
+    RW.MH,
     threads,
     arms.list$n, # n: number of samples to draw, now only 1
     arms.list$nsamp, # nsamp: number of MCMC for generating each ARMS sample, only keeping the last one

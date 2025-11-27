@@ -15,6 +15,7 @@ void BVS_logistic::mcmc(
     arma::umat& gammas,
     const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
+    const std::string& rw_mh,
     const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
@@ -85,6 +86,7 @@ void BVS_logistic::mcmc(
             gammas,
             gammaSampler,
             gammaProposal,
+            rw_mh,
             logP_gamma,
             gamma_acc_count,
             logP_beta,
@@ -170,6 +172,7 @@ void BVS_logistic::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
     const std::string& gammaProposal,
+    const std::string& rw_mh,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     double& logP_beta,
@@ -201,7 +204,8 @@ void BVS_logistic::sampleGamma(
     static arma::mat banditBeta = arma::mat(p, L, arma::fill::value(0.5));
 
     // adaptive factor for reaching MH acceptance rate 0.234 (Roberts GO and Rosenthal JS, 2001)
-    // Note that the target acceptance rate 0.234 can be difficult to reach due to very sparse prior on gamma
+    // Note1: The target acceptance rate 0.234 can be difficult to reach due to very sparse prior on gamma
+    // Note2: As Roberts & Rosenthal (2001) mentioned: there is very little to be gained from fine tuning of acceptance rates. ok with acc_rate (0.1, 0.4)
     static double a = std::log(2.38 * 2.38 / 4.0); // 'a' must be static variable
 
     // decide on one component
@@ -288,41 +292,49 @@ void BVS_logistic::sampleGamma(
     proposedBeta(updateIdx + 1) = beta_mask.subvec(1, J-1);
     */
     
-    // step size of the random-walk proposal. Larger c increases proposal variance and typically lowers acceptance; smaller c increases acceptance but mixes slower.
-    // double c = 2.38 * 2.38 / (double)J;
-    double c = std::exp(a);
-    if( arma::any(gammas(1+updateIdx)) )
+    if (rw_mh != "symmetric") 
     {
-        /*
-        // mu = 1. / (1. + arma::exp(-dataclass.X * betas));
-        mu = 0.5 * (1. + arma::tanh((dataclass.X * betas) / 2.)); // more stable sigmoid
-        mu.elem(arma::find(mu > 1.0-lowerbound0)).fill(1.0-lowerbound0);
-        mu.elem(arma::find(mu < lowerbound0)).fill(lowerbound0);
-
-        // W.diag() = - dataclass.y / mu / mu + (1. - dataclass.y) / (1.-mu) / (1.-mu); // observed Hessian
-        W.diag() = mu % (1. - mu); // Fisher weights, i.e. expected Hessian
-        // plus Gauss–Newton/Fisher block curvature H_J
-        Lambda +=  dataclass.X.cols(1+updateIdx).t() * W * dataclass.X.cols(1+updateIdx);
-        // std::cout << "...debug W.diag=" << W.diag().t() << "\n";
-        // std::cout << "...debug Lambda=" << Lambda;
-        Lambda.diag() += lambda0; //plus Damping 0.1 in diagonals
-        if( !arma::inv_sympd( invLambda,  Lambda ) )
+        // step size of the random-walk proposal. Larger c increases proposal variance and typically lowers acceptance; smaller c increases acceptance but mixes slower.
+        // double c = 2.38 * 2.38 / (double)J;
+        double c = std::exp(a);
+        if( arma::any(gammas(1+updateIdx)) )
         {
-            arma::inv(invLambda, Lambda, arma::inv_opts::allow_approx);
+            /*
+            // mu = 1. / (1. + arma::exp(-dataclass.X * betas));
+            mu = 0.5 * (1. + arma::tanh((dataclass.X * betas) / 2.)); // more stable sigmoid
+            mu.elem(arma::find(mu > 1.0-lowerbound0)).fill(1.0-lowerbound0);
+            mu.elem(arma::find(mu < lowerbound0)).fill(lowerbound0);
+
+            // W.diag() = - dataclass.y / mu / mu + (1. - dataclass.y) / (1.-mu) / (1.-mu); // observed Hessian
+            W.diag() = mu % (1. - mu); // Fisher weights, i.e. expected Hessian
+            // plus Gauss–Newton/Fisher block curvature H_J
+            Lambda +=  dataclass.X.cols(1+updateIdx).t() * W * dataclass.X.cols(1+updateIdx);
+            // std::cout << "...debug W.diag=" << W.diag().t() << "\n";
+            // std::cout << "...debug Lambda=" << Lambda;
+            Lambda.diag() += lambda0; //plus Damping 0.1 in diagonals
+            if( !arma::inv_sympd( invLambda,  Lambda ) )
+            {
+                arma::inv(invLambda, Lambda, arma::inv_opts::allow_approx);
+            }
+            */
+            arma::mat SigmaRW = c * calculateLambda(betas, tauSq, updateIdx, dataclass);
+            arma::vec u = BVS_subfunc::randMvNormal( arma::zeros<arma::vec>(updateIdx.n_elem), SigmaRW );
+            proposedBeta(1 + updateIdx) += u;
+            proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
+
+            // proposal: q(beta_proposal | beta); forward beta proposal density
+            logProposalRatio -= BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx), betas(1+updateIdx), SigmaRW);
         }
-        */
-        arma::mat SigmaRW = c * invLambda(betas, tauSq, updateIdx, dataclass);
-        arma::vec beta_mask = BVS_subfunc::randMvNormal( arma::zeros<arma::vec>(updateIdx.n_elem), SigmaRW );
-        proposedBeta(1 + updateIdx) += beta_mask;
-        proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
-        // proposal: q(beta_proposal | beta); forward beta proposal density
-        logProposalRatio -= BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx), betas(1+updateIdx), SigmaRW);
+        // proposal: q(beta | beta_proposal); reverse beta proposal density
+        arma::mat SigmaRW_reverse = c * calculateLambda(proposedBeta, tauSq, updateIdx, dataclass);
+        logProposalRatio += BVS_subfunc::logPDFNormal(betas(1+updateIdx), proposedBeta(1+updateIdx), SigmaRW_reverse);
+    } else if( arma::any(gammas(1+updateIdx)) ) {
+        // (symmetric) random-walk Metropolis with optimal standard deviation O(d^{-1/2})
+        arma::vec u = Rcpp::rnorm( updateIdx.n_elem, 0., 1. / std::sqrt(updateIdx.n_elem) ); 
+        proposedBeta(1 + updateIdx) += u;
+        proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // assure some of proposed betas be 0 corresponding to proposed gammas 0
     }
-
-    // proposal: q(beta | beta_proposal); reverse beta proposal density
-    arma::mat SigmaRW_betaMask = c * invLambda(proposedBeta, tauSq, updateIdx, dataclass);
-    logProposalRatio += BVS_subfunc::logPDFNormal(betas(1+updateIdx), proposedBeta(1+updateIdx), SigmaRW_betaMask);
 
     // prior ratio of beta
     double logPriorBetaRatio = 0.;
@@ -355,7 +367,7 @@ void BVS_logistic::sampleGamma(
     }
 
     // Robbins–Monro update (during burn-in only) (Robbins H and Monro S, 1951)
-    if (iter < burnin)
+    if (iter < burnin && rw_mh == "adaptive")
     {
         /*
         double acc_target = (J >= 5 ? 0.234 : 0.35);
@@ -395,7 +407,7 @@ void BVS_logistic::sampleGamma(
     // return gammas;
 }
 
-arma::mat BVS_logistic::invLambda(
+arma::mat BVS_logistic::calculateLambda(
     const arma::mat& betas,
     const double tauSq,
     const arma::uvec& updateIdx,
@@ -428,7 +440,7 @@ arma::mat BVS_logistic::invLambda(
         return invLambda;
 }
 
-
+/*
 double BVS_logistic::logPBeta(
     const arma::mat& betas,
     double tauSq,
@@ -439,4 +451,4 @@ double BVS_logistic::logPBeta(
 
     return logP;
 }
-
+*/

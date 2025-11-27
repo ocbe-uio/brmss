@@ -1,11 +1,9 @@
 <div style="text-align: left;">
 
-### brmss 0.3 (2025-10-31) (GitHub Only)
+### brmss 0.4 (2025-11-27) (GitHub Only)
 
-* Fix minor bugs in `BVS_subfunc::gammaMC3Proposal()` and `BVS_gaussian::sampleGamma()
-* Fix bug with Gibbs sampling for Bernoulli probability
-* Add hierarchical related regressions (HRR)
-* Fixed bugs in all functions `sampleGammaProposalRatio()`
+* Suppress `gammaProposal == "simple"` in `BVS_logistic.cpp` and use RW-MH for proposing betas in the gamma-beta move
+* Add argument `RW.MH = c("fisher", "adaptive", "symmetric")` in `brmss()` for choosing the type fo RW's variance
 
 * TODO: in MVP models, try to use MH sampler for D instead of directly extracting from Psi
 
@@ -18,6 +16,13 @@
 * TODO: add logistic regression with Pólya-gamma augmentation
 * TODO: add MRF prior
 * TODO: pass 'logP_beta' in gammaSample() to avoid repeatedly update
+
+### brmss 0.3 (2025-10-31) (GitHub Only)
+
+* Fix minor bugs in `BVS_subfunc::gammaMC3Proposal()` and `BVS_gaussian::sampleGamma()
+* Fix bug with Gibbs sampling for Bernoulli probability
+* Add hierarchical related regressions (HRR)
+* Fixed bugs in all functions `sampleGammaProposalRatio()`
 
 ### brmss 0.2 (2025-10-29) (GitHub Only)
 

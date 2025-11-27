@@ -42,6 +42,7 @@ extern omp_lock_t RNGlock; /*defined in global.h*/
 //' @param gammaProposal one of 'c("simple", "posterior")'
 //' @param gamma_gibbs one of 'c("none", "independent", "gprior")'
 //' @param var_prior string indicating the prior for the variance of response/error term
+//' @param rw_mh string indicating the type of random-walk variance in MH sampling for gamma-beta move
 //' @param threads number of threads used for parallelization. Default is 1
 //' @param n number of samples to draw
 //' @param nsamp how many samples to draw for generating each sample; only the last draw will be kept
@@ -66,6 +67,7 @@ Rcpp::List run_mcmc(
     const std::string& gammaProposal,
     const std::string& gamma_gibbs,
     const std::string& var_prior,
+    const std::string& rw_mh,
     int threads,
 
     unsigned int n,
@@ -359,6 +361,7 @@ Rcpp::List run_mcmc(
             gammas,
             gammaProposal,
             gammaSampler,
+            rw_mh,
             armsPar,
             hyperpar,
             dataclass,

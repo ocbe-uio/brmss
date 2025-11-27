@@ -16,6 +16,7 @@ run_mcmc(
   gammaProposal,
   gamma_gibbs,
   var_prior,
+  rw_mh,
   threads,
   n,
   nsamp,
@@ -50,6 +51,8 @@ parameters every tick-th iteration. Default is 1}
 \item{gamma_gibbs}{one of 'c("none", "independent", "gprior")'}
 
 \item{var_prior}{string indicating the prior for the variance of response/error term}
+
+\item{rw_mh}{string indicating the type of random-walk variance in MH sampling for gamma-beta move}
 
 \item{threads}{number of threads used for parallelization. Default is 1}
 

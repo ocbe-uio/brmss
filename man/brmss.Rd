@@ -18,6 +18,7 @@ brmss(
   gammaProposal = "simple",
   gammaGibbs = "none",
   varPrior = "IG",
+  RW.MH = "adaptive",
   initial = NULL,
   arms.list = NULL
 )
@@ -61,6 +62,10 @@ response/error term. Default is \code{IG}. For continous multivariate
 responses, it can also be \code{IW} for the inverse-Wishart prior (dense 
 variance-covariance matrix) or \code{HIW} for the hyper-inverse Wishart 
 (sparse precision matrix)}
+
+\item{RW.MH}{string indicating the type of random-walk variance in MH 
+sampling for gamma-beta move, one of 
+\code{c("fisher", "adaptive", "symmetric")}}
 
 \item{initial}{a list of initial values for parameters "kappa" and "betas"}
 
