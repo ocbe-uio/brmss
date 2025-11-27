@@ -201,6 +201,7 @@ void BVS_logistic::sampleGamma(
     static arma::mat banditBeta = arma::mat(p, L, arma::fill::value(0.5));
 
     // adaptive factor for reaching MH acceptance rate 0.234 (Roberts GO and Rosenthal JS, 2001)
+    // Note that the target acceptance rate 0.234 can be difficult to reach due to very sparse prior on gamma
     static double a = std::log(2.38 * 2.38 / 4.0); // 'a' must be static variable
 
     // decide on one component
@@ -225,10 +226,7 @@ void BVS_logistic::sampleGamma(
 
     // note only one outcome is updated
     // update log probabilities
-
-    // compute logProposalGammaRatio, i.e. proposedGammaPrior - logP_gamma
-    double logProposalGammaRatio = 0.;
-
+    double logPriorGammaRatio = 0.;
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
     // TODO: check if pi0 is needed
@@ -238,7 +236,7 @@ void BVS_logistic::sampleGamma(
         double pi = R::rbeta(hyperpar.piA + (double)(gammas(1+i,componentUpdateIdx)),
                              hyperpar.piB + 1 - (double)(gammas(1+i,componentUpdateIdx)));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
+        logPriorGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
@@ -326,18 +324,12 @@ void BVS_logistic::sampleGamma(
     arma::mat SigmaRW_betaMask = c * invLambda(proposedBeta, tauSq, updateIdx, dataclass);
     logProposalRatio += BVS_subfunc::logPDFNormal(betas(1+updateIdx), proposedBeta(1+updateIdx), SigmaRW_betaMask);
 
-
-    // double proposedBetaPrior = 0.;
-    // double logProposalBetaRatio = 0.;
+    // prior ratio of beta
     double logPriorBetaRatio = 0.;
-    if (gammaProposal == "posterior")
-    {
-        // logProposalRatio -= logPBeta(proposedBeta, tauSq, dataclass);
-        // logProposalRatio += logPBeta(betas, tauSq, dataclass);
+    if (gammaProposal == "simple")
+        Rcpp::Rcout << "Warning: The argument 'gammaProposal = simple' is invalid!";
 
-        logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx), tauSq) - BVS_subfunc::logPDFNormal(betas(1+updateIdx), tauSq);
-        // logProposalBetaRatio = proposedBetaPrior - logP_beta;
-    }
+    logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx), tauSq) - BVS_subfunc::logPDFNormal(betas(1+updateIdx), tauSq);
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglikelihood( proposedBeta, dataclass );
@@ -345,11 +337,10 @@ void BVS_logistic::sampleGamma(
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
-    double logAccProb = logProposalGammaRatio +
-                        logLikelihoodRatio +
-                        logProposalRatio +
-                        // logProposalBetaRatio +
-                        logPriorBetaRatio;
+    double logAccProb = logLikelihoodRatio +
+                        logPriorGammaRatio +
+                        logPriorBetaRatio +
+                        logProposalRatio;
 
     bool accepted = (std::log(R::runif(0,1)) < logAccProb);
     if( accepted )
@@ -380,6 +371,7 @@ void BVS_logistic::sampleGamma(
         a += eta_m * ((accepted ? 1.0 : 0.0) - acc_target);
         */
         a += 0.1 / (iter + 50) * ((accepted ? 1.0 : 0.0) - 0.234);
+        // std::cout << "...Adaptive factor for step size of the RW proposal a=" << a;
     }
 
     // after A/R, update bandit Related variables
