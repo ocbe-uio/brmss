@@ -20,6 +20,7 @@ public:
         arma::umat& gammas,
         const std::string& gammaProposal,
         Gamma_Sampler_Type gammaSampler,
+        const std::string& rw_mh,
         const armsParmClass& armsPar,
         const hyperparClass& hyperpar,
         const DataClass &dataclass,
@@ -47,6 +48,7 @@ private:
         arma::umat& gammas,
         Gamma_Sampler_Type gamma_sampler,
         const std::string& gammaProposal,
+        const std::string& rw_mh,
         arma::mat& logP_gamma,
         unsigned int& gamma_acc_count,
         arma::vec& loglik,
@@ -57,6 +59,8 @@ private:
         arma::mat& betas,
         double tau0Sq,
         arma::vec& tauSq,
+        const unsigned int iter,
+        const unsigned int burnin,
 
         const DataClass &dataclass
     );

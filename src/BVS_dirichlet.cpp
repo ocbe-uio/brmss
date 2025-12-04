@@ -15,6 +15,7 @@ void BVS_dirichlet::mcmc(
     arma::umat& gammas,
     const std::string& gammaProposal,
     Gamma_Sampler_Type gammaSampler,
+    const std::string& rw_mh,
     const armsParmClass& armsPar,
     const hyperparClass& hyperpar,
     const DataClass &dataclass,
@@ -95,6 +96,7 @@ void BVS_dirichlet::mcmc(
                 gammas,
                 gammaSampler,
                 gammaProposal,
+                rw_mh,
                 logP_gamma,
                 gamma_acc_count,
                 loglik,
@@ -103,6 +105,8 @@ void BVS_dirichlet::mcmc(
                 betas,
                 tau0Sq,
                 tauSq,
+                m,
+                burnin,
 
                 dataclass
         );
@@ -199,6 +203,7 @@ void BVS_dirichlet::sampleGamma(
     arma::umat& gammas,
     Gamma_Sampler_Type gamma_sampler,
     const std::string& gammaProposal,
+    const std::string& rw_mh,
     arma::mat& logP_gamma,
     unsigned int& gamma_acc_count,
     arma::vec& loglik,
@@ -208,6 +213,8 @@ void BVS_dirichlet::sampleGamma(
     arma::mat& betas,
     double tau0Sq,
     arma::vec& tauSq,
+    const unsigned int iter,
+    const unsigned int burnin,
 
     const DataClass &dataclass)
 {
@@ -225,6 +232,9 @@ void BVS_dirichlet::sampleGamma(
     // initial value 0.5 here forces shrinkage toward 0 or 1
     static arma::mat banditAlpha = arma::mat(p, L, arma::fill::value(0.5));
     static arma::mat banditBeta = arma::mat(p, L, arma::fill::value(0.5));
+
+    // adaptive factor for reaching MH acceptance rate 0.234 (Roberts GO and Rosenthal JS, 2001)
+    static double a = std::log(2.38 * 2.38 / 4.0); // 'a' must be static variable
 
     // decide on one component
     unsigned int componentUpdateIdx = 0;
@@ -252,6 +262,7 @@ void BVS_dirichlet::sampleGamma(
 
     proposedGammaPrior = logP_gamma; // copy the original one and later change the address of the copied one
 
+    double logPriorGammaRatio = 0.;
     for(auto i: updateIdx)
     {
         //// feature-specific Bernoulli probability
@@ -261,73 +272,53 @@ void BVS_dirichlet::sampleGamma(
         double pi = R::rbeta(hyperpar.piA + (double)(arma::sum(gammas.row(1+i))),
                              hyperpar.piB + (double)p - (double)(arma::sum(gammas.row(1+i))));
         proposedGammaPrior(1+i,componentUpdateIdx) = BVS_subfunc::logPDFBernoulli( proposedGamma(1+i,componentUpdateIdx), pi );
-        logProposalGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
+        logPriorGammaRatio +=  proposedGammaPrior(1+i, componentUpdateIdx) - logP_gamma(1+i, componentUpdateIdx);
     }
 
     arma::mat proposedBeta = betas;
     proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.);
 
-    ARMS_Gibbs::arms_gibbs_betaK_dirichlet(
-        componentUpdateIdx,
-        armsPar,
-        hyperpar,
-        proposedBeta,
-        proposedGamma,
-        tau0Sq, // here fixed tau0Sq
-        tauSq[componentUpdateIdx], // here fixed tauSq
-        dataclass
-    );
+    // RW-MH
+    if (rw_mh != "symmetric") 
+    {
+        double c = std::exp(a);
+        arma::vec u = Rcpp::rnorm( updateIdx.n_elem, 0., c * 1. / std::sqrt(updateIdx.n_elem) ); 
+        proposedBeta(1+updateIdx, singleIdx_k) += u;
+        proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // assure 0 for corresponding proposed betas with 0
+        // TODO: not be implement with local Gaussian approach
+        
+    } else if( arma::any(gammas(1+updateIdx)) ) {
+        // (symmetric) random-walk Metropolis with optimal standard deviation O(d^{-1/2})
+        arma::vec u = Rcpp::rnorm( updateIdx.n_elem, 0., 1. / std::sqrt(updateIdx.n_elem) ); 
+        proposedBeta(1+updateIdx, singleIdx_k) += u;
+        proposedBeta.elem(arma::find(proposedGamma == 0)).fill(0.); // assure 0 for corresponding proposed betas with 0
+    }
+
+    // prior ratio of beta
+    if (gammaProposal == "simple")
+        throw std::runtime_error("The argument 'gammaProposal = simple' is invalid!");
+
+    // update density of beta priors
+    double logPriorBetaRatio = 0.;
+    logPriorBetaRatio += BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx,singleIdx_k), tauSq[componentUpdateIdx]);
+    logPriorBetaRatio -= BVS_subfunc::logPDFNormal(betas(1+updateIdx,singleIdx_k), tauSq[componentUpdateIdx]);
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
     arma::vec proposedLikelihood = loglik;
-    loglikelihood( betas, dataclass, loglik );
+    // loglikelihood( betas, dataclass, loglik );
     loglikelihood( proposedBeta, dataclass, proposedLikelihood );
 
     double logLikelihoodRatio = arma::sum(proposedLikelihood - loglik);
 
-
-    double logProposalBetaRatio = 0.;
-    double logPriorBetaRatio = 0.;
-    if (gammaProposal == "posterior")
-    {
-        logPriorBetaRatio = BVS_subfunc::logPDFNormal(
-            proposedBeta.col(componentUpdateIdx), 
-            tauSq[componentUpdateIdx]
-        ) - 
-            BVS_subfunc::logPDFNormal(
-                betas.col(componentUpdateIdx), 
-                tauSq[componentUpdateIdx]
-        );
-
-        // update density of beta priors
-        double logP_beta = 0.;
-        double proposedBetaPrior = 0.;
-        logP_beta = logPBeta(
-                        betas,
-                        tauSq,
-                        dataclass
-                    );
-        proposedBetaPrior = logPBeta(
-                                proposedBeta,
-                                tauSq,
-                                dataclass
-                            );
-        logProposalBetaRatio = proposedBetaPrior - logP_beta;
-    }
-    //// the following is the same as using logPBeta() above
-    // double logP_beta = loglik + logprior;
-    // double proposedBetaPrior = proposedLikelihood + proposedLogprior;
-
-
-    // TODO: check if 'logProposalBetaRatio == -(logLikelihoodRatio + logPriorBetaRatio)'
-
     // Here we need always compute the proposal and original ratios, in particular the likelihood, since betas are updated
-    double logAccProb = logProposalGammaRatio +
-                        logLikelihoodRatio +
-                        logProposalRatio +
-                        logPriorBetaRatio + logProposalBetaRatio;
+    double logAccProb = logLikelihoodRatio +
+                        logPriorGammaRatio +
+                        logPriorBetaRatio +
+                        logProposalRatio;
 
-    if( std::log(R::runif(0,1)) < logAccProb )
+    bool accepted = (std::log(R::runif(0,1)) < logAccProb);
+    if( accepted )
+    // if( std::log(R::runif(0,1)) < logAccProb )
     {
         gammas = proposedGamma;
         logP_gamma = proposedGammaPrior;
@@ -335,6 +326,12 @@ void BVS_dirichlet::sampleGamma(
         betas = proposedBeta;
 
         ++gamma_acc_count;
+    }
+
+    // Robbins–Monro update (during burn-in only) (Robbins H and Monro S, 1951)
+    if (iter < burnin && rw_mh == "adaptive")
+    {
+        a += 0.1 / (iter + 50) * ((accepted ? 1.0 : 0.0) - 0.234);
     }
 
     // after A/R, update bandit Related variables

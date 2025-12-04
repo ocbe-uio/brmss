@@ -4,6 +4,7 @@
 
 * Suppress `gammaProposal == "simple"` in `BVS_logistic.cpp` and use RW-MH for proposing betas in the gamma-beta move
 * Add argument `RW.MH = c("fisher", "adaptive", "symmetric")` in `brmss()` for choosing the type fo RW's variance
+* Implement `RW.MH = "symmetric"` in `BVS_weibull.cpp`
 
 * TODO: in MVP models, try to use MH sampler for D instead of directly extracting from Psi
 

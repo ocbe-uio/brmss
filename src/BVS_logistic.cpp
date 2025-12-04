@@ -337,10 +337,10 @@ void BVS_logistic::sampleGamma(
     }
 
     // prior ratio of beta
-    double logPriorBetaRatio = 0.;
     if (gammaProposal == "simple")
-        Rcpp::Rcout << "Warning: The argument 'gammaProposal = simple' is invalid!";
+        throw std::runtime_error("The argument 'gammaProposal = simple' is invalid!");
 
+    double logPriorBetaRatio = 0.;
     logPriorBetaRatio = BVS_subfunc::logPDFNormal(proposedBeta(1+updateIdx), tauSq) - BVS_subfunc::logPDFNormal(betas(1+updateIdx), tauSq);
 
     // compute logLikelihoodRatio, i.e. proposedLikelihood - loglik
