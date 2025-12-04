@@ -15,7 +15,7 @@ brmss(
   hyperpar = NULL,
   threads = 1,
   gammaSampler = "bandit",
-  gammaProposal = "simple",
+  gammaProposal = "posterior",
   gammaGibbs = "none",
   varPrior = "IG",
   RW.MH = "adaptive",
